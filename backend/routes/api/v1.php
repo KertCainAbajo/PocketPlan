@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
+use App\Http\Controllers\Api\V1\Auth\GoogleBrowserLoginController;
 use App\Http\Controllers\Api\V1\Auth\GoogleLoginController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -33,6 +34,10 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('register', RegisterController::class)->name('register');
     Route::post('login', LoginController::class)->name('login');
     Route::post('auth/google', GoogleLoginController::class)->name('auth.google');
+    // Browser-based Google sign-in (works in Expo Go). See GoogleBrowserLoginController.
+    Route::get('auth/google/redirect', [GoogleBrowserLoginController::class, 'redirect'])->name('auth.google.redirect');
+    Route::post('auth/google/callback', [GoogleBrowserLoginController::class, 'callback'])->name('auth.google.callback');
+    Route::post('auth/google/exchange', [GoogleBrowserLoginController::class, 'exchange'])->name('auth.google.exchange');
     Route::post('forgot-password', ForgotPasswordController::class)->name('password.email');
     Route::post('reset-password', ResetPasswordController::class)->name('password.reset');
 });

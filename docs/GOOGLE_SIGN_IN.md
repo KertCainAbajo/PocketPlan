@@ -1,86 +1,64 @@
 # Google sign-in setup
 
-PocketPlan's "Continue with Google" button is fully built:
+PocketPlan uses **browser-based** Google sign-in. It works in **Expo Go** and in installed builds, on Android and iPhone, with no native Google SDK and no development build.
 
-- **Backend:** `POST /api/v1/auth/google`, which verifies the token with Google, then creates the account or links it to an existing one.
-- **Mobile:** the button and the sign-in flow.
+## How it works
 
-It needs two things that only you can provide:
+1. The app opens `GET /api/v1/auth/google/redirect` in a secure browser sheet.
+2. The backend sends the browser to Google, where the student picks an account.
+3. Google posts the signed ID token to `POST /api/v1/auth/google/callback`. The backend verifies it (audience, issuer, expiry, verified email, nonce), then signs the student in or creates the account.
+4. The browser is sent back to the app with a **one-time code**, valid for 2 minutes and usable once. The app trades it for its API token at `POST /api/v1/auth/google/exchange`. The API token never appears in a URL.
 
-1. **OAuth client IDs** from Google Cloud Console.
-2. **A development build** of the app. Google sign-in uses native code, so it **never works inside Expo Go**. In Expo Go the button explains this instead of failing.
+Google only returns the browser to **HTTPS** addresses (or `localhost`), so during local development the backend is exposed through a free Cloudflare tunnel.
 
-## 1. Create the Google Cloud credentials
+## One-time Google Cloud setup
 
-1. Go to <https://console.cloud.google.com/> and create a project, for example *PocketPlan*.
-2. Open **APIs & Services → OAuth consent screen**:
-   - Choose **External** and fill in the app name, support email and developer email.
-   - Under **Test users**, add the Google accounts you will test with while the app is in "Testing".
-3. Open **APIs & Services → Credentials → Create credentials → OAuth client ID** and create **two** clients:
+In <https://console.cloud.google.com/> → APIs & Services:
 
-   | Type | Settings | What it's for |
-   |---|---|---|
-   | **Web application** | No settings needed | Its client ID is the *webClientId*. The backend accepts tokens issued for it |
-   | **Android** | Package name `ph.pocketplan.app`, plus the SHA-1 from step 2 | Lets the Android app request Google tokens |
+1. **OAuth consent screen**: add your Gmail (and testers) under **Test users** while the app is in "Testing".
+2. **Credentials → your Web application client**:
+   - Under **Authorized redirect URIs**, add `https://<your-tunnel>.trycloudflare.com/api/v1/auth/google/callback`.
+   - Copy the **Client ID** into `backend/.env` as `GOOGLE_CLIENT_IDS`.
 
-   Add an **iOS** client later only if you build for iPhone.
+The Android OAuth client and SHA-1 are not needed for this method.
 
-## 2. Get the Android SHA-1 fingerprint
-
-Generate the native project once (from `mobile/`):
+## Every development session
 
 ```powershell
-npx expo prebuild --platform android
+# 1. Backend
+cd D:\PocketPlan\PocketPlan\backend
+php artisan serve --host=0.0.0.0 --port=8000
+
+# 2. Tunnel (new terminal); it prints https://<random-words>.trycloudflare.com
+& "$env:LOCALAPPDATA\cloudflared\cloudflared.exe" tunnel --url http://localhost:8000
+
+# 3. App (new terminal)
+cd D:\PocketPlan\PocketPlan\mobile
+npx expo start
 ```
 
-Then print the debug keystore's fingerprint:
+**The quick-tunnel address changes every time you restart cloudflared.** When it changes, update two places:
 
-```powershell
-& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore android\app\debug.keystore -alias androiddebugkey -storepass android -keypass android
-```
+- `GOOGLE_REDIRECT_URI` in `backend/.env`, set to `https://<new-address>/api/v1/auth/google/callback`
+- the **Authorized redirect URI** in Google Cloud. Google can take a few minutes to apply it.
 
-Copy the **SHA1** line into the Android OAuth client. A release or Play Store build has a different SHA-1; add that too when you publish.
+To avoid updating these every session, use a free fixed address instead. A free ngrok static domain or a named Cloudflare tunnel both work. In production, the backend's real HTTPS domain replaces the tunnel entirely.
 
-## 3. Configure PocketPlan
+## Configuration reference
 
-**`backend/.env`**: the backend accepts ID tokens whose audience is this web client ID.
+| `backend/.env` | Example |
+|---|---|
+| `GOOGLE_CLIENT_IDS` | `1234567890-abc.apps.googleusercontent.com` (Web client) |
+| `GOOGLE_REDIRECT_URI` | `https://approaches-pace-define-anne.trycloudflare.com/api/v1/auth/google/callback` |
 
-```
-GOOGLE_CLIENT_IDS=1234567890-abc123.apps.googleusercontent.com
-```
+The mobile app needs no Google settings. It only talks to `EXPO_PUBLIC_API_URL`.
 
-**`mobile/.env`**: use the same web client ID, not the Android one.
-
-```
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=1234567890-abc123.apps.googleusercontent.com
-```
-
-## 4. Build and run the development build
-
-From `mobile/`, with the emulator running:
-
-```powershell
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-npx expo run:android
-```
-
-This compiles PocketPlan with its native modules and installs it on the emulator as its own app, with its own icon, instead of running inside Expo Go. The first build takes several minutes. Afterwards, `npx expo start` reloads JavaScript changes into it as usual.
-
-## iOS (later)
-
-Create an **iOS** OAuth client with the bundle ID `ph.pocketplan.app`. Then add the plugin to `mobile/app.json`, using the iOS client's *reversed client ID*:
-
-```json
-["@react-native-google-signin/google-signin", { "iosUrlScheme": "com.googleusercontent.apps.YOUR-IOS-CLIENT-ID" }]
-```
-
-## How accounts are matched
+## Account rules
 
 | Situation | Result |
 |---|---|
 | The Google account has signed in before | Signs in to the same PocketPlan account |
 | The email already has a PocketPlan account | Google is linked to it. Email and password still work |
 | A new email | A new student account is created. The button shows the Terms notice, and acceptance is recorded |
-| The email belongs to an admin, or the account is deactivated | Rejected |
-| No `GOOGLE_CLIENT_IDS` on the server | `503`, with the message "Google sign-in is not configured on this server." |
+| An admin email, or a deactivated account | The browser returns to the app with an error |
+| The app links that may receive codes | `pocketplan://`, plus Expo Go's `exp://` outside production |

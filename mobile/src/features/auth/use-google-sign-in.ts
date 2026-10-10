@@ -1,45 +1,34 @@
 import { useMutation } from '@tanstack/react-query';
-import { isAxiosError } from 'axios';
+import * as Device from 'expo-device';
 import { useState } from 'react';
 
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
 
-import { authApi } from './api';
-import { getGoogleIdToken, googleAvailability, GOOGLE_UNAVAILABLE_MESSAGE } from './google';
+import { GoogleSignInError, signInWithGoogle } from './google';
+
+const deviceName = Device.modelName ?? Device.osName ?? 'mobile';
 
 /**
- * "Continue with Google": picks a Google account, exchanges its ID token for a
- * PocketPlan token, and signs in. New students accept the terms by continuing
- * (the button shows that notice).
+ * "Continue with Google". New students accept the terms by continuing
+ * (the button shows that notice); existing students simply sign in.
  */
 export function useGoogleSignIn() {
   const signIn = useAuthStore((s) => s.signIn);
-  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const idToken = await getGoogleIdToken();
-      if (!idToken) return null; // picker closed
-      return authApi.google(idToken);
-    },
+    mutationFn: () => signInWithGoogle(deviceName),
     onSuccess: (payload) => {
       if (payload) void signIn(payload.token, payload.user);
     },
-    onError: (e) => setError(isAxiosError(e) ? getErrorMessage(e) : e instanceof Error ? e.message : getErrorMessage(e)),
+    onError: (e) => setError(e instanceof GoogleSignInError ? e.message : getErrorMessage(e)),
   });
 
   const start = () => {
-    setNotice(null);
     setError(null);
-    const availability = googleAvailability();
-    if (availability !== 'available') {
-      setNotice(GOOGLE_UNAVAILABLE_MESSAGE[availability]);
-      return;
-    }
     mutation.mutate();
   };
 
-  return { start, isPending: mutation.isPending, notice, error };
+  return { start, isPending: mutation.isPending, error, notice: null as string | null };
 }

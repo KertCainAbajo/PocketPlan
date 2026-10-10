@@ -25,11 +25,6 @@ export const authApi = {
     return data.data;
   },
 
-  /** Exchange a Google ID token for a PocketPlan token (creates the account on first use). */
-  async google(idToken: string): Promise<AuthPayload> {
-    const { data } = await api.post<ApiResource<AuthPayload>>('/auth/google', { id_token: idToken, terms: true, device_name: deviceName });
-    return data.data;
-  },
 
   async me(): Promise<User> {
     const { data } = await api.get<ApiResource<User>>('/me');

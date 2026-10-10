@@ -18,7 +18,7 @@ class GoogleIdTokenVerifier
     private const ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
 
     /**
-     * @return array{sub: string, email: string, name: string}
+     * @return array{sub: string, email: string, name: string, nonce: string|null}
      *
      * @throws ValidationException when the token is invalid or not for this app
      * @throws ServiceUnavailableHttpException when Google sign-in is not configured or Google is unreachable
@@ -55,6 +55,7 @@ class GoogleIdTokenVerifier
             'sub' => (string) $claims['sub'],
             'email' => mb_strtolower((string) $claims['email']),
             'name' => (string) ($claims['name'] ?? explode('@', (string) $claims['email'])[0]),
+            'nonce' => isset($claims['nonce']) ? (string) $claims['nonce'] : null,
         ];
     }
 }

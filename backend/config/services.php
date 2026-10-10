@@ -34,6 +34,8 @@ return [
     | used as webClientId in the mobile app). Empty = Google sign-in disabled.
     */
     'google' => [
+        // Public HTTPS URL of POST /api/v1/auth/google/callback, registered in Google Cloud as an authorized redirect URI.
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
         'client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', ''))))),
     ],
 

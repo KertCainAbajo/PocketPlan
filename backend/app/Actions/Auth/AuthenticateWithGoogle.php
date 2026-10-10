@@ -28,8 +28,17 @@ class AuthenticateWithGoogle
      */
     public function handle(string $idToken, bool $acceptedTerms): array
     {
-        $profile = $this->verifier->verify($idToken);
+        return $this->signIn($this->verifier->verify($idToken), $acceptedTerms);
+    }
 
+    /**
+     * Sign in with an already-verified Google profile.
+     *
+     * @param  array{sub: string, email: string, name: string}  $profile
+     * @return array{user: User, created: bool}
+     */
+    public function signIn(array $profile, bool $acceptedTerms): array
+    {
         return DB::transaction(function () use ($profile, $acceptedTerms) {
             $user = User::query()->where('google_id', $profile['sub'])->lockForUpdate()->first()
                 ?? User::query()->where('email', $profile['email'])->lockForUpdate()->first();

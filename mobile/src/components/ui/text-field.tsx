@@ -28,9 +28,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   return (
     <View className="mb-4">
       <Text className="mb-1.5 text-sm font-semibold text-ink">{label}</Text>
-      <View
-        className={`h-14 flex-row items-center gap-3 rounded-2xl border-[1.5px] bg-card px-4 ${borderClass}`}
-        style={focused && !error ? { shadowColor: colors.accent, shadowOpacity: 0.18, shadowRadius: 8, elevation: 2 } : undefined}>
+      {/*
+        Only colours change on focus. Toggling shadow/elevation here makes Android
+        rebuild the native view, which steals focus from the TextInput and closes the keyboard.
+      */}
+      <View className={`h-14 flex-row items-center gap-3 rounded-2xl border-[1.5px] px-4 ${borderClass} ${focused && !error ? 'bg-accent-light/40' : 'bg-card'}`}>
         {Icon && <Icon size={20} color={iconColor} />}
         <TextInput
           ref={ref}
