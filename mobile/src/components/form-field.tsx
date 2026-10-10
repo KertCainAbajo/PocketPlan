@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import type { TextInputProps } from 'react-native';
 
@@ -7,7 +9,9 @@ interface FormFieldProps<T extends FieldValues> extends Omit<TextInputProps, 'va
   control: Control<T>;
   name: FieldPath<T>;
   label: string;
+  icon?: LucideIcon;
   password?: boolean;
+  children?: ReactNode;
 }
 
 /** TextField bound to react-hook-form; shows the field's validation error. */

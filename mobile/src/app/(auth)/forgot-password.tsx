@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { AuthHeader } from '@/components/auth-header';
+import { AuthLayout } from '@/components/auth-layout';
 import { FormField } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { FormBanner } from '@/components/ui/form-banner';
-import { Screen } from '@/components/ui/screen';
 import { authApi } from '@/features/auth/api';
 import { forgotPasswordSchema, type ForgotPasswordInput } from '@/features/auth/schemas';
 import { applyServerErrors } from '@/lib/form-errors';
@@ -32,8 +32,7 @@ export default function ForgotPasswordScreen() {
   });
 
   return (
-    <Screen scroll>
-      <AuthHeader title="Reset your password" subtitle="Enter your account email and we'll send you a reset link." />
+    <AuthLayout title="Reset your password" subtitle="Enter your account email and we'll send you a reset link.">
 
       <FormBanner message={formError} />
       <FormBanner message={request.data} tone="success" />
@@ -42,6 +41,7 @@ export default function ForgotPasswordScreen() {
         control={control}
         name="email"
         label="Email"
+        icon={Mail}
         placeholder="you@example.com"
         autoCapitalize="none"
         autoComplete="email"
@@ -66,6 +66,6 @@ export default function ForgotPasswordScreen() {
           onPress={() => router.push({ pathname: '/reset-password', params: { email: getValues('email') } })}
         />
       )}
-    </Screen>
+    </AuthLayout>
   );
 }

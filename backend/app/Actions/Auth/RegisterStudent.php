@@ -20,6 +20,8 @@ class RegisterStudent
                 'role' => UserRole::Student,
                 'status' => UserStatus::Active,
                 'last_login_at' => now(),
+                // Registration only succeeds once the terms were accepted (validated in RegisterRequest).
+                'terms_accepted_at' => now(),
             ])->save();
 
             $user->notificationPreference()->create();

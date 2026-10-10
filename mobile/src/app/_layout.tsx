@@ -66,6 +66,8 @@ function RootNavigator() {
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
+        {/* Public in both states: linked from sign-up and from settings. */}
+        <Stack.Screen name="legal" options={{ presentation: 'modal' }} />
       </Stack>
       {status === 'offline' && <OfflineNotice onRetry={bootstrap} />}
     </>

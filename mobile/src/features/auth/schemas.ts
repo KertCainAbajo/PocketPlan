@@ -20,6 +20,7 @@ export const registerSchema = z
     email,
     password: newPassword,
     passwordConfirmation: z.string().min(1, 'Please confirm your password.'),
+    acceptedTerms: z.boolean().refine((v) => v, 'Please accept the Terms of Service and Privacy Policy to continue.'),
   })
   .refine((v) => v.password === v.passwordConfirmation, {
     path: ['passwordConfirmation'],
@@ -48,4 +49,5 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 /** Maps backend (snake_case) field names to form field names. */
 export const serverFieldMap: Record<string, string> = {
   password_confirmation: 'passwordConfirmation',
+  terms: 'acceptedTerms',
 };

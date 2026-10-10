@@ -26,6 +26,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property bool $must_change_password
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $onboarded_at
+ * @property Carbon|null $terms_accepted_at
  * @property Carbon|null $last_login_at
  * @property Carbon|null $deactivated_at
  * @property DeactivatedBy|null $deactivated_by
@@ -74,6 +75,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'onboarded_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'last_login_at' => 'datetime',
             'deactivated_at' => 'datetime',
             'must_change_password' => 'boolean',

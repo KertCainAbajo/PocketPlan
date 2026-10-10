@@ -23,7 +23,19 @@ class RegistrationTest extends TestCase
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
             'device_name' => 'pixel-7',
+            'terms' => true,
         ], $overrides);
+    }
+
+    public function test_terms_must_be_accepted_and_acceptance_is_recorded(): void
+    {
+        $this->postJson('/api/v1/register', $this->payload(['terms' => false]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['terms' => 'Please accept the Terms of Service and Privacy Policy to continue.']);
+        $this->assertDatabaseCount('users', 0);
+
+        $this->postJson('/api/v1/register', $this->payload())->assertCreated();
+        $this->assertNotNull(User::query()->sole()->terms_accepted_at);
     }
 
     public function test_student_can_register_and_receives_a_token(): void

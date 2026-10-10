@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { FormBanner } from '@/components/ui/form-banner';
 import { authApi } from '@/features/auth/api';
 import { getErrorMessage } from '@/lib/api-client';
+import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -17,6 +18,7 @@ import { colors } from '@/theme/colors';
  * end to end. Replaced by the budget dashboard and tab bar in Phase 5.
  */
 export default function HomeScreen() {
+  useStatusBarStyle('dark');
   const storedUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const signOut = useAuthStore((s) => s.signOut);

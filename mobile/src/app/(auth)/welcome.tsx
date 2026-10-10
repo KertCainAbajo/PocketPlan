@@ -1,6 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
-import { setStatusBarStyle } from 'expo-status-bar';
+import { router } from 'expo-router';
 import {
   CheckCircle2,
   Gauge,
@@ -11,13 +10,14 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useCallback, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/brand-mark';
 import { Button } from '@/components/ui/button';
+import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { colors } from '@/theme/colors';
 
 const LIGHT_ACCENT = '#AEB8FF';
@@ -29,13 +29,7 @@ const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
 ];
 
 export default function WelcomeScreen() {
-  // Light status bar icons on the navy background; restore dark when leaving.
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle('light');
-      return () => setStatusBarStyle('dark');
-    }, []),
-  );
+  useStatusBarStyle('light');
 
   return (
     <View className="flex-1 bg-primary">

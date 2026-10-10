@@ -19,6 +19,7 @@ export const authApi = {
       email: input.email,
       password: input.password,
       password_confirmation: input.passwordConfirmation,
+      terms: input.acceptedTerms,
       device_name: deviceName,
     });
     return data.data;

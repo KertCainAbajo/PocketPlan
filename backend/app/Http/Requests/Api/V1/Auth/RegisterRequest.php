@@ -22,6 +22,15 @@ class RegisterRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'device_name' => ['nullable', 'string', 'max:100'],
+            'terms' => ['accepted'],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return ['terms.accepted' => 'Please accept the Terms of Service and Privacy Policy to continue.'];
     }
 }
