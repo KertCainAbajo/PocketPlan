@@ -40,8 +40,12 @@ class UserTest extends TestCase
         // 23:30 UTC on Oct 10 is already Oct 11 in Manila (UTC+8).
         Carbon::setTestNow(Carbon::parse('2026-10-10 23:30:00', 'UTC'));
 
-        $this->assertSame('2026-10-11', (new User(['timezone' => 'Asia/Manila']))->today()->toDateString());
+        $manila = (new User(['timezone' => 'Asia/Manila']))->today();
+        $this->assertSame('2026-10-11', $manila->toDateString());
         $this->assertSame('2026-10-10', (new User(['timezone' => 'UTC']))->today()->toDateString());
+
+        // Comparable with DATE columns, which are midnight in the app timezone.
+        $this->assertTrue($manila->equalTo(Carbon::parse('2026-10-11')));
 
         Carbon::setTestNow();
     }

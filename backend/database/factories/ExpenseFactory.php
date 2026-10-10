@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Category;
 use App\Models\Expense;
-use App\Models\ExpenseCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +22,7 @@ class ExpenseFactory extends Factory
         return [
             'user_id' => User::factory(),
             'budget_id' => null,
-            'category_id' => ExpenseCategory::factory(),
+            'category_id' => Category::factory(),
             'amount' => number_format(fake()->randomFloat(2, 10, 500), 2, '.', ''),
             'description' => fake()->words(3, true),
             'notes' => null,

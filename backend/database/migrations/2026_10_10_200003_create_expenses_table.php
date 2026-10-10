@@ -15,7 +15,7 @@ return new class extends Migration
             // Assigned by the server from spent_on; NULL = unbudgeted.
             $table->foreignId('budget_id')->nullable()->constrained()->nullOnDelete();
             // Categories are deactivated, never deleted, so history is preserved.
-            $table->foreignId('category_id')->constrained('expense_categories')->restrictOnDelete();
+            $table->foreignId('category_id')->constrained('categories')->restrictOnDelete();
             $table->decimal('amount', 12, 2);
             $table->string('description', 150);
             $table->text('notes')->nullable();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DeactivatedBy;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
@@ -27,6 +28,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $onboarded_at
  * @property Carbon|null $last_login_at
  * @property Carbon|null $deactivated_at
+ * @property DeactivatedBy|null $deactivated_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -78,6 +80,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'status' => UserStatus::class,
+            'deactivated_by' => DeactivatedBy::class,
         ];
     }
 
@@ -96,10 +99,16 @@ class User extends Authenticatable
         return $this->status === UserStatus::Active;
     }
 
-    /** The current calendar date in the user's own timezone. */
+    /**
+     * Today's calendar date for this user, decided in their own timezone.
+     *
+     * Returned at midnight in the application timezone, the same form as DATE
+     * columns (spent_on, start_date…), so the two can be compared directly.
+     * Comparing against a Manila-midnight instant instead would be 8 hours off.
+     */
     public function today(): Carbon
     {
-        return Carbon::now($this->timezone)->startOfDay();
+        return Carbon::parse(Carbon::now($this->timezone)->toDateString(), config('app.timezone'));
     }
 
     /** @return HasMany<Budget, $this> */
@@ -114,10 +123,26 @@ class User extends Authenticatable
         return $this->hasMany(Expense::class);
     }
 
-    /** @return HasMany<ExpenseCategory, $this> */
+    /** @return HasMany<Income, $this> */
+    public function incomes(): HasMany
+    {
+        return $this->hasMany(Income::class);
+    }
+
+    /** @return HasMany<RecurringIncome, $this> */
+    public function recurringIncomes(): HasMany
+    {
+        return $this->hasMany(RecurringIncome::class);
+    }
+
+    /**
+     * The student's own categories (platform defaults have no owner).
+     *
+     * @return HasMany<Category, $this>
+     */
     public function personalCategories(): HasMany
     {
-        return $this->hasMany(ExpenseCategory::class);
+        return $this->hasMany(Category::class);
     }
 
     /** @return HasMany<SavingsGoal, $this> */

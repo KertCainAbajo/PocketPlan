@@ -25,6 +25,8 @@ return new class extends Migration
             $table->boolean('must_change_password')->default(false);
             $table->timestamp('last_login_at')->nullable();
             $table->timestamp('deactivated_at')->nullable();
+            // 'self' can reactivate by signing in; 'admin' cannot.
+            $table->enum('deactivated_by', ['admin', 'self'])->nullable();
             $table->rememberToken();
             $table->timestamps();
 

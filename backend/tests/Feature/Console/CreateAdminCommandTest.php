@@ -68,7 +68,7 @@ class CreateAdminCommandTest extends TestCase
         $this->seed();
         $this->seed(); // idempotent
 
-        $this->assertDatabaseCount('expense_categories', 9);
+        $this->assertDatabaseCount('categories', 16); // 9 expense + 7 income defaults
         $this->assertSame(1, User::where('role', 'admin')->count());
     }
 }

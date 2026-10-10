@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
-use Database\Factories\ExpenseCategoryFactory;
+use App\Enums\CategoryType;
+use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
+ * An expense or income category: either a platform default (user_id null,
+ * managed by admins) or a student's personal category.
+ *
  * @property int $id
- * @property int|null $user_id null = default (admin-managed) category
+ * @property int|null $user_id
+ * @property CategoryType $type
  * @property string $name
  * @property string|null $description
  * @property string|null $icon lucide icon name
@@ -22,11 +26,12 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class ExpenseCategory extends Model
+class Category extends Model
 {
-    /** @use HasFactory<ExpenseCategoryFactory> */
+    /** @use HasFactory<CategoryFactory> */
     use HasFactory;
 
+    /** user_id and type are set by the server, never mass-assigned. */
     protected $fillable = [
         'name',
         'description',
@@ -46,6 +51,7 @@ class ExpenseCategory extends Model
     protected function casts(): array
     {
         return [
+            'type' => CategoryType::class,
             'is_active' => 'boolean',
         ];
     }
@@ -56,15 +62,14 @@ class ExpenseCategory extends Model
         return $this->belongsTo(User::class);
     }
 
-    /** @return HasMany<Expense, $this> */
-    public function expenses(): HasMany
-    {
-        return $this->hasMany(Expense::class, 'category_id');
-    }
-
     public function isDefault(): bool
     {
         return $this->user_id === null;
+    }
+
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->user_id === $user->id;
     }
 
     /** @param Builder<self> $query */
@@ -75,14 +80,24 @@ class ExpenseCategory extends Model
     }
 
     /**
-     * Categories a student may pick: active defaults plus their own active ones.
+     * Platform defaults plus the student's own categories (active or not).
      *
      * @param  Builder<self>  $query
      */
     #[Scope]
-    protected function availableTo(Builder $query, User $user): void
+    protected function visibleTo(Builder $query, User $user): void
     {
-        $query->where('is_active', true)
-            ->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', $user->id));
+        $query->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', $user->id));
+    }
+
+    /**
+     * Categories a student may pick for a new record: active, of the right type.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function selectableBy(Builder $query, User $user, CategoryType $type): void
+    {
+        $query->visibleTo($user)->where('type', $type)->where('is_active', true);
     }
 }

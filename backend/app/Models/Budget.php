@@ -12,13 +12,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * An allowance period. Money columns are DECIMAL and arrive as strings ("2000.00").
+ * A spending plan for a period. Money columns are DECIMAL and arrive as strings.
  *
  * @property int $id
  * @property int $user_id
  * @property string $name
- * @property string $total_allowance
- * @property string $savings_target amount reserved for savings; not spendable
+ * @property string $spending_limit how much the student plans to spend in the period
  * @property Carbon $start_date
  * @property Carbon $end_date inclusive
  * @property AllowanceFrequency $frequency
@@ -35,8 +34,7 @@ class Budget extends Model
     /** user_id and status are assigned by the server, never mass-assigned. */
     protected $fillable = [
         'name',
-        'total_allowance',
-        'savings_target',
+        'spending_limit',
         'start_date',
         'end_date',
         'frequency',
@@ -44,7 +42,6 @@ class Budget extends Model
 
     /** @var array<string, mixed> */
     protected $attributes = [
-        'savings_target' => '0.00',
         'status' => 'active',
     ];
 
@@ -54,8 +51,7 @@ class Budget extends Model
     protected function casts(): array
     {
         return [
-            'total_allowance' => 'decimal:2',
-            'savings_target' => 'decimal:2',
+            'spending_limit' => 'decimal:2',
             'start_date' => 'date',
             'end_date' => 'date',
             'completed_at' => 'datetime',
@@ -74,6 +70,12 @@ class Budget extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
+    }
+
+    /** @return HasMany<BudgetCategoryLimit, $this> */
+    public function categoryLimits(): HasMany
+    {
+        return $this->hasMany(BudgetCategoryLimit::class);
     }
 
     public function isActive(): bool

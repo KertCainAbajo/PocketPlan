@@ -34,6 +34,7 @@ The command prompts for the password, which must be at least 12 characters with 
 
 | Command | What it does |
 |---|---|
+| `php artisan schedule:work` | Runs scheduled jobs locally (recurring income every hour) |
 | `composer dev` | Starts the API on `http://0.0.0.0:8000`, reachable from the Android emulator as `http://10.0.2.2:8000` |
 | `composer test` | Runs the test suite against `pocketplan_test` |
 | `composer lint` | Fixes code style (Laravel Pint) |
@@ -44,11 +45,14 @@ The command prompts for the password, which must be at least 12 characters with 
 
 ```
 app/
-├── Actions/               One class per business operation (handle(): result)
+├── Actions/               One class per business operation
 │   ├── Admin/             CreateAdminAccount
-│   └── Auth/              RegisterStudent, AuthenticateStudent, IssueMobileToken,
-│                          SendPasswordResetLink, ResetStudentPassword
-├── Console/Commands/      pocketplan:create-admin
+│   ├── Auth/              RegisterStudent, AuthenticateStudent, IssueMobileToken, ...
+│   ├── Budgets/           SaveBudget (create/update, overlap check), CompleteBudget
+│   ├── Expenses/          SaveExpense (assigns the budget by date)
+│   ├── Incomes/           CreateRecurringIncome
+│   └── Onboarding/        CompleteOnboarding
+├── Console/Commands/      pocketplan:create-admin, pocketplan:generate-recurring-incomes
 ├── Enums/                 UserRole, UserStatus, BudgetStatus, AllowanceFrequency, ...
 ├── Exceptions/Auth/       Domain exceptions that render their own 403 JSON
 ├── Http/
@@ -57,6 +61,10 @@ app/
 │   ├── Requests/Api/V1/      Form requests (validation rules)
 │   └── Resources/V1/         JSON shapes returned by the API
 ├── Models/                Eloquent models (typed @property docs, no business logic)
+├── Rules/                 SelectableCategory (right owner, type and active)
+├── Services/              BalanceService, DashboardService, RecurringIncomeGenerator,
+│   └── Budget/            BudgetCalculator (pure math), BudgetSnapshot, BudgetPeriods, BudgetSummaryService
+├── Support/               Money (exact decimal helpers)
 └── Providers/             Rate limiters, password policy, production hardening
 database/
 ├── factories/  migrations/ (one table per file)  seeders/
@@ -86,14 +94,18 @@ route → middleware (auth:sanctum, active, student) → FormRequest → Control
 - Status codes: `401` not signed in, `403` wrong role or deactivated, `404` not found or not yours, `422` validation, `429` rate limited.
 - Money is sent as strings with two decimals (`"1350.00"`) and computed with exact decimals on the server.
 
-| Method | Path | Auth |
+| Method | Path | Notes |
 |---|---|---|
-| POST | `/register` | public |
-| POST | `/login` | public |
-| POST | `/forgot-password` | public |
-| POST | `/reset-password` | public |
-| POST | `/logout` | student |
-| GET | `/me` | student |
+| POST | `/register`, `/login`, `/forgot-password`, `/reset-password` | public, rate limited |
+| POST | `/logout` · GET `/me` | |
+| POST | `/onboarding` | currency, first allowance (income + optional recurring schedule), first budget, optional savings goal |
+| GET | `/dashboard` | available balance, this month totals, today, current budget summary, category breakdown, recent transactions |
+| GET/POST/PUT | `/categories`, `/categories/{id}` | `?type=expense\|income`; students edit only their own |
+| CRUD | `/incomes` | filters: `search, category_id, from, to, sort, per_page`; `meta.total_amount` |
+| GET/POST/PUT/DELETE | `/recurring-incomes` | payments are generated when due (command + on dashboard/income list) |
+| CRUD | `/expenses` | same filters plus `budget_id`; budget is assigned by date on the server |
+| GET/POST/PUT | `/budgets` | end date derived from frequency; optional `category_limits`; 409 on overlap |
+| POST | `/budgets/{id}/complete` | optional `end_date` to close early |
 
 See `docs/PLAN.md` in the repository root for the full endpoint plan and the budget calculation rules.
 

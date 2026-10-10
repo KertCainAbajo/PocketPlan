@@ -13,8 +13,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('name', 100);
-            $table->decimal('total_allowance', 12, 2);
-            $table->decimal('savings_target', 12, 2)->default(0);
+            // How much the student plans to spend in this period (not money received).
+            $table->decimal('spending_limit', 12, 2);
             $table->date('start_date');
             $table->date('end_date');
             $table->enum('frequency', ['daily', 'weekly', 'monthly', 'custom']);
@@ -28,7 +28,7 @@ return new class extends Migration
 
         if (DB::getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE budgets ADD CONSTRAINT budgets_dates_chk CHECK (end_date >= start_date)');
-            DB::statement('ALTER TABLE budgets ADD CONSTRAINT budgets_amounts_chk CHECK (total_allowance >= 0 AND savings_target >= 0 AND savings_target <= total_allowance)');
+            DB::statement('ALTER TABLE budgets ADD CONSTRAINT budgets_limit_chk CHECK (spending_limit >= 0)');
         }
     }
 
