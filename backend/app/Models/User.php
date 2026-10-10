@@ -18,6 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property string|null $google_id Google account id for students who sign in with Google
  * @property string $password
  * @property UserRole $role
  * @property UserStatus $status

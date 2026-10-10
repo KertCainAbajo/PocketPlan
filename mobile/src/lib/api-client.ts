@@ -46,6 +46,7 @@ export function getErrorMessage(error: unknown): string {
         : 'Cannot reach PocketPlan. Check your internet connection and try again.';
     }
     if (error.response.status === 429) return 'Too many attempts. Please wait a minute and try again.';
+    if (error.response.status === 503 && error.response.data?.message) return error.response.data.message;
     if (error.response.status >= 500) return 'Something went wrong on our side. Please try again.';
     const firstFieldError = Object.values(error.response.data?.errors ?? {})[0]?.[0];
     return firstFieldError ?? error.response.data?.message ?? 'Request failed. Please try again.';

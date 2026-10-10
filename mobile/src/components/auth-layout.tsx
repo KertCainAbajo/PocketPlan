@@ -12,6 +12,8 @@ import { colors } from '@/theme/colors';
 import { Logo } from './logo';
 
 interface AuthLayoutProps {
+  /** Small chip above the title, e.g. a greeting. */
+  eyebrow?: string;
   title: string;
   subtitle?: string;
   children: ReactNode;
@@ -21,7 +23,7 @@ interface AuthLayoutProps {
  * Shared frame for sign-in, sign-up and password screens: a navy header that
  * continues the welcome screen's branding, with the form on a rounded sheet.
  */
-export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
+export function AuthLayout({ eyebrow, title, subtitle, children }: AuthLayoutProps) {
   const insets = useSafeAreaInsets();
   useStatusBarStyle('light');
 
@@ -55,6 +57,11 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           </View>
 
           <Animated.View entering={FadeInDown.duration(450)} className="mt-6">
+            {eyebrow ? (
+              <View className="mb-3 self-start rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                <Text className="text-xs font-semibold text-white/85">{eyebrow}</Text>
+              </View>
+            ) : null}
             <Text className="text-[30px] font-extrabold tracking-tight text-white">{title}</Text>
             {subtitle ? <Text className="mt-1.5 text-[15px] leading-[22px] text-white/70">{subtitle}</Text> : null}
           </Animated.View>

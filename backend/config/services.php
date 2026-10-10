@@ -28,6 +28,15 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    | Google sign-in. GOOGLE_CLIENT_IDS is a comma-separated list of OAuth client
+    | IDs whose ID tokens are accepted (normally the "Web application" client
+    | used as webClientId in the mobile app). Empty = Google sign-in disabled.
+    */
+    'google' => [
+        'client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', ''))))),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

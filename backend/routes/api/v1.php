@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
+use App\Http\Controllers\Api\V1\Auth\GoogleLoginController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
@@ -31,6 +32,7 @@ Route::pattern('recurringIncome', '[0-9]+');
 Route::middleware('throttle:auth')->group(function () {
     Route::post('register', RegisterController::class)->name('register');
     Route::post('login', LoginController::class)->name('login');
+    Route::post('auth/google', GoogleLoginController::class)->name('auth.google');
     Route::post('forgot-password', ForgotPasswordController::class)->name('password.email');
     Route::post('reset-password', ResetPasswordController::class)->name('password.reset');
 });

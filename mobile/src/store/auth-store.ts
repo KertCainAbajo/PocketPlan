@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios';
 import { create } from 'zustand';
 
 import { authApi } from '@/features/auth/api';
+import { signOutOfGoogle } from '@/features/auth/google';
 import { setAuthToken } from '@/lib/api-client';
 import { tokenStorage } from '@/lib/token-storage';
 import type { User } from '@/types/api';
@@ -58,6 +59,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // Even if the server is unreachable, the local session must end.
     }
+    await signOutOfGoogle();
     await get().clearSession();
   },
 

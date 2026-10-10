@@ -8,12 +8,14 @@ import { Text, View } from 'react-native';
 
 import { AuthLayout } from '@/components/auth-layout';
 import { FormField } from '@/components/form-field';
+import { GoogleButton } from '@/components/google-button';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormBanner } from '@/components/ui/form-banner';
 import { authApi } from '@/features/auth/api';
 import { PasswordStrength } from '@/features/auth/password-strength';
 import { registerSchema, serverFieldMap, type RegisterInput } from '@/features/auth/schemas';
+import { useGoogleSignIn } from '@/features/auth/use-google-sign-in';
 import { applyServerErrors } from '@/lib/form-errors';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
@@ -22,6 +24,7 @@ const FIELDS = ['name', 'email', 'password', 'passwordConfirmation', 'acceptedTe
 
 export default function RegisterScreen() {
   const signIn = useAuthStore((s) => s.signIn);
+  const google = useGoogleSignIn();
   const [formError, setFormError] = useState<string | null>(null);
 
   const { control, handleSubmit, setError, setFocus } = useForm<RegisterInput>({
@@ -46,6 +49,25 @@ export default function RegisterScreen() {
 
   return (
     <AuthLayout title="Create your account" subtitle="Plan your allowance and know what you can spend, in under a minute.">
+      <GoogleButton label="Sign up with Google" onPress={google.start} loading={google.isPending} />
+      <Text className="mt-2.5 text-center text-xs leading-[18px] text-muted">
+        By continuing with Google you agree to the{' '}
+        <Text className="font-semibold text-accent" onPress={() => router.push('/legal')}>
+          Terms & Privacy
+        </Text>
+        .
+      </Text>
+      <View className="mt-3">
+        <FormBanner message={google.notice} tone="info" />
+        <FormBanner message={google.error} />
+      </View>
+
+      <View className="mb-5 mt-2 flex-row items-center gap-3">
+        <View className="h-px flex-1 bg-border" />
+        <Text className="text-xs font-medium uppercase tracking-widest text-muted">or with email</Text>
+        <View className="h-px flex-1 bg-border" />
+      </View>
+
       <FormBanner message={formError} />
 
       <FormField
