@@ -3,13 +3,26 @@
 namespace App\Models;
 
 use App\Enums\SavingsGoalStatus;
+use Database\Factories\SavingsGoalFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $name
+ * @property string $target_amount
+ * @property Carbon|null $target_date
+ * @property SavingsGoalStatus $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class SavingsGoal extends Model
 {
+    /** @use HasFactory<SavingsGoalFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -18,10 +31,14 @@ class SavingsGoal extends Model
         'target_date',
     ];
 
+    /** @var array<string, mixed> */
     protected $attributes = [
         'status' => 'active',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -31,11 +48,13 @@ class SavingsGoal extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<SavingsContribution, $this> */
     public function contributions(): HasMany
     {
         return $this->hasMany(SavingsContribution::class);

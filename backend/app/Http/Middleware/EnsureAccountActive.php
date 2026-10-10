@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\Auth\AccountDeactivatedException;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,21 +17,22 @@ class EnsureAccountActive
     {
         $user = $request->user();
 
-        if ($user && ! $user->isActive()) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                $user->currentAccessToken()?->delete();
-
-                return response()->json(['message' => 'This account has been deactivated.'], 403);
-            }
-
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return redirect()->route('admin.login')
-                ->withErrors(['email' => 'This account has been deactivated.']);
+        if (! $user || $user->isActive()) {
+            return $next($request);
         }
 
-        return $next($request);
+        if ($request->is('api/*')) {
+            // Revoke every device, not just the one making this request.
+            $user->tokens()->delete();
+
+            throw new AccountDeactivatedException;
+        }
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->guest('/admin/login')
+            ->withErrors(['email' => AccountDeactivatedException::MESSAGE]);
     }
 }

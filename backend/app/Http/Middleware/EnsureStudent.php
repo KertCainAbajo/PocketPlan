@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\Auth\StudentAccountRequiredException;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +15,7 @@ class EnsureStudent
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->user()?->isStudent()) {
-            return response()->json(['message' => 'This action is only available to student accounts.'], 403);
+            throw new StudentAccountRequiredException;
         }
 
         return $next($request);

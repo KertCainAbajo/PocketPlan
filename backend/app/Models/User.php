@@ -13,6 +13,23 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property UserRole $role
+ * @property UserStatus $status
+ * @property string $currency ISO 4217 code, e.g. PHP
+ * @property string $timezone IANA zone used to decide what "today" is
+ * @property bool $must_change_password
+ * @property Carbon|null $email_verified_at
+ * @property Carbon|null $onboarded_at
+ * @property Carbon|null $last_login_at
+ * @property Carbon|null $deactivated_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -32,14 +49,13 @@ class User extends Authenticatable
         'timezone',
     ];
 
-    /**
-     * @var list<string>
-     */
+    /** @var list<string> */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    /** @var array<string, mixed> */
     protected $attributes = [
         'role' => 'student',
         'status' => 'active',
@@ -48,6 +64,9 @@ class User extends Authenticatable
         'must_change_password' => false,
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -83,31 +102,37 @@ class User extends Authenticatable
         return Carbon::now($this->timezone)->startOfDay();
     }
 
+    /** @return HasMany<Budget, $this> */
     public function budgets(): HasMany
     {
         return $this->hasMany(Budget::class);
     }
 
+    /** @return HasMany<Expense, $this> */
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
     }
 
+    /** @return HasMany<ExpenseCategory, $this> */
     public function personalCategories(): HasMany
     {
         return $this->hasMany(ExpenseCategory::class);
     }
 
+    /** @return HasMany<SavingsGoal, $this> */
     public function savingsGoals(): HasMany
     {
         return $this->hasMany(SavingsGoal::class);
     }
 
+    /** @return HasOne<NotificationPreference, $this> */
     public function notificationPreference(): HasOne
     {
         return $this->hasOne(NotificationPreference::class);
     }
 
+    /** @return HasMany<AdminAuditLog, $this> */
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AdminAuditLog::class, 'admin_id');

@@ -1,59 +1,105 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PocketPlan Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 REST API for the PocketPlan mobile app, and (from Phase 3) the admin web dashboard. The data lives in MySQL 8.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3+ with `pdo_mysql`, `bcmath`, `mbstring`
+- Composer 2
+- MySQL 8 (two databases: `pocketplan` and `pocketplan_test`)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## First-time setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```powershell
+# 1. Create the databases (or run the same SQL in MySQL Workbench)
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "CREATE DATABASE pocketplan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE pocketplan_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-## Learning Laravel
+# 2. Install, create .env, generate the app key, migrate and seed
+composer setup
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Then set `DB_USERNAME` and `DB_PASSWORD` in `.env` and run `php artisan migrate --seed`.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Create the admin account
 
-## Laravel Sponsors
+Public registration only ever creates students. Admins are created from the command line:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```powershell
+php artisan pocketplan:create-admin --email=admin@example.com
+```
 
-### Premium Partners
+The command prompts for the password, which must be at least 12 characters with upper case, lower case and a number. You can also set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` and run the seeder instead. Either way, the admin must change the password at first login, and `ADMIN_PASSWORD` should be removed from `.env` afterwards.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Daily use
 
-## Contributing
+| Command | What it does |
+|---|---|
+| `composer dev` | Starts the API on `http://0.0.0.0:8000`, reachable from the Android emulator as `http://10.0.2.2:8000` |
+| `composer test` | Runs the test suite against `pocketplan_test` |
+| `composer lint` | Fixes code style (Laravel Pint) |
+| `composer analyse` | Static analysis (Larastan, level 6) |
+| `composer check` | Style check, analysis and tests, as in CI |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Project structure
 
-## Code of Conduct
+```
+app/
+├── Actions/               One class per business operation (handle(): result)
+│   ├── Admin/             CreateAdminAccount
+│   └── Auth/              RegisterStudent, AuthenticateStudent, IssueMobileToken,
+│                          SendPasswordResetLink, ResetStudentPassword
+├── Console/Commands/      pocketplan:create-admin
+├── Enums/                 UserRole, UserStatus, BudgetStatus, AllowanceFrequency, ...
+├── Exceptions/Auth/       Domain exceptions that render their own 403 JSON
+├── Http/
+│   ├── Controllers/Api/V1/   Thin controllers: validate, call an action, return a resource
+│   ├── Middleware/           active, student, admin, password.changed
+│   ├── Requests/Api/V1/      Form requests (validation rules)
+│   └── Resources/V1/         JSON shapes returned by the API
+├── Models/                Eloquent models (typed @property docs, no business logic)
+└── Providers/             Rate limiters, password policy, production hardening
+database/
+├── factories/  migrations/ (one table per file)  seeders/
+routes/
+├── api.php                Mounts each API version
+└── api/v1.php             All /api/v1 routes
+tests/
+├── Feature/Api/V1/        HTTP tests per feature (Auth/, AccessControlTest)
+├── Feature/Console/       Artisan command tests
+├── Feature/Database/      Schema constraint tests (MySQL CHECKs, exact money)
+└── Unit/                  Model-level tests
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+A request flows through these layers:
 
-## Security Vulnerabilities
+```
+route → middleware (auth:sanctum, active, student) → FormRequest → Controller → Action → Model
+                                                                     ↓
+                                                              API Resource → JSON
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## API conventions
 
-## License
+- Base URL: `/api/v1`. Send `Accept: application/json`; the API always answers with JSON.
+- Auth: `Authorization: Bearer <token>`. Tokens come from `/register` or `/login` and expire after `MOBILE_TOKEN_TTL_DAYS` days (default 30).
+- Success: `{ "data": ... }`. Errors: `{ "message": "...", "errors": { "field": ["..."] } }`.
+- Status codes: `401` not signed in, `403` wrong role or deactivated, `404` not found or not yours, `422` validation, `429` rate limited.
+- Money is sent as strings with two decimals (`"1350.00"`) and computed with exact decimals on the server.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Method | Path | Auth |
+|---|---|---|
+| POST | `/register` | public |
+| POST | `/login` | public |
+| POST | `/forgot-password` | public |
+| POST | `/reset-password` | public |
+| POST | `/logout` | student |
+| GET | `/me` | student |
+
+See `docs/PLAN.md` in the repository root for the full endpoint plan and the budget calculation rules.
+
+## Security notes
+
+- `role` and `status` are not mass-assignable. Only server code sets them, using `forceFill`.
+- Deactivating an account revokes every token on its next request. A password reset signs out all devices.
+- Login, registration and password reset are rate limited to 5 per minute per email and IP, and 20 per minute per IP.
+- In production, URLs are forced to HTTPS and destructive database commands (`migrate:fresh`, `db:wipe`) are refused.

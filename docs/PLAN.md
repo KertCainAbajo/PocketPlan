@@ -54,34 +54,29 @@ Key principles
 PocketPlan/
 ├── docs/PLAN.md
 ├── backend/                               Laravel 12
-│   ├── app/
+│   ├── app/                               (see backend/README.md for the current layout)
+│   │   ├── Actions/{Auth,Admin,...}/      one class per business operation; controllers stay thin
 │   │   ├── Enums/                         UserRole, UserStatus, BudgetStatus, AllowanceFrequency, PaymentMethod
+│   │   ├── Exceptions/                    domain exceptions that render their own JSON
 │   │   ├── Http/
 │   │   │   ├── Controllers/
-│   │   │   │   ├── Api/V1/                AuthController, OnboardingController, BudgetController,
-│   │   │   │   │                          ExpenseController, CategoryController, DashboardController,
-│   │   │   │   │                          ReportController, InsightController, SavingsGoalController,
-│   │   │   │   │                          SavingsContributionController, NotificationController,
-│   │   │   │   │                          ProfileController, NotificationPreferenceController
-│   │   │   │   └── Admin/                 AuthController, DashboardController, UserController,
-│   │   │   │                              CategoryController, AuditLogController, ProfileController
-│   │   │   ├── Middleware/                EnsureAccountActive, EnsureStudent, EnsureAdmin,
-│   │   │   │                              EnsurePasswordChanged
-│   │   │   ├── Requests/{Api,Admin}/      FormRequest validation per action
-│   │   │   └── Resources/                 JSON API resources (UserResource, BudgetResource, ...)
-│   │   ├── Models/                        User, Budget, Expense, ExpenseCategory, SavingsGoal,
-│   │   │                                  SavingsContribution, NotificationPreference, AdminAuditLog
+│   │   │   │   ├── Api/V1/                Auth/{Register,Login,Logout,ForgotPassword,ResetPassword}Controller,
+│   │   │   │   │                          ProfileController, then Onboarding, Budget, Expense, Category,
+│   │   │   │   │                          Dashboard, Report, Insight, SavingsGoal, Notification controllers
+│   │   │   │   └── Admin/                 Auth, Dashboard, User, Category, AuditLog, Profile controllers
+│   │   │   ├── Middleware/                EnsureAccountActive, EnsureStudent, EnsureAdmin, EnsurePasswordChanged
+│   │   │   ├── Requests/{Api/V1,Admin}/   FormRequest validation per action
+│   │   │   └── Resources/V1/              JSON API resources (UserResource, AuthTokenResource, BudgetResource, ...)
+│   │   ├── Models/                        typed @property docs; no business logic
 │   │   ├── Policies/                      BudgetPolicy, ExpensePolicy, SavingsGoalPolicy, ...
-│   │   ├── Services/                      BudgetCalculator, BudgetService, ExpenseService,
-│   │   │                                  ReportService, InsightService, AuditLogger, AdminStatsService
+│   │   ├── Services/                      BudgetCalculator (pure math), ReportService, InsightService, AuditLogger
 │   │   ├── Notifications/                 DailySpendingWarning, BudgetThresholdReached, ...
-│   │   └── Console/Commands/              CreateAdmin (pocketplan:create-admin), CompleteExpiredBudgets,
-│   │                                      SendDailyReminders
-│   ├── database/{migrations,factories,seeders}/
+│   │   └── Console/Commands/              CreateAdminCommand (pocketplan:create-admin), CompleteExpiredBudgets, ...
+│   ├── database/{migrations (one table per file),factories,seeders}/
 │   ├── resources/views/admin/             layouts/, auth/, dashboard, users/, categories/, audit-logs/, profile/
 │   ├── public/admin/{admin.css,admin.js}  CSS variables = official palette; no build step
-│   ├── routes/{api.php,web.php,console.php}
-│   └── tests/{Unit,Feature/Api,Feature/Admin}/
+│   ├── routes/{api.php → api/v1.php, web.php, console.php}
+│   └── tests/{Unit,Feature/Api/V1,Feature/Admin,Feature/Database,Feature/Console}/
 └── mobile/                                Expo (TypeScript, Expo Router)
     ├── app/                               file-based routes (see §13 mapping below)
     │   ├── _layout.tsx                    providers: QueryClient, Paper, auth bootstrap
