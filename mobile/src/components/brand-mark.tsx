@@ -1,15 +1,20 @@
-import { Wallet } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { Logo } from './logo';
 
-export function BrandMark({ inverted = false }: { inverted?: boolean }) {
+interface BrandMarkProps {
+  /** White wordmark for navy backgrounds. */
+  inverted?: boolean;
+  size?: number;
+}
+
+export function BrandMark({ inverted = false, size = 40 }: BrandMarkProps) {
   return (
-    <View className="flex-row items-center gap-2.5">
-      <View className={`h-11 w-11 items-center justify-center rounded-2xl ${inverted ? 'bg-white/15' : 'bg-accent-light'}`}>
-        <Wallet size={24} color={inverted ? colors.card : colors.accent} />
-      </View>
-      <Text className={`text-2xl font-bold ${inverted ? 'text-white' : 'text-primary'}`}>PocketPlan</Text>
+    <View className="flex-row items-center gap-2" accessible accessibilityLabel="PocketPlan">
+      <Logo size={size} variant={inverted ? 'dark' : 'light'} />
+      <Text className={`text-[22px] font-bold tracking-tight ${inverted ? 'text-white' : 'text-primary'}`}>
+        Pocket<Text className={inverted ? 'text-[#AEB8FF]' : 'text-accent'}>Plan</Text>
+      </Text>
     </View>
   );
 }

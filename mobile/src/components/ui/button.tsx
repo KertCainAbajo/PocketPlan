@@ -2,7 +2,8 @@ import { ActivityIndicator, Pressable, Text } from 'react-native';
 
 import { colors } from '@/theme/colors';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+/** 'inverse' and 'outline-inverse' are for navy backgrounds. */
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'outline-inverse';
 
 interface ButtonProps {
   label: string;
@@ -18,6 +19,8 @@ const containerByVariant: Record<Variant, string> = {
   secondary: 'bg-accent-light border border-accent',
   ghost: 'bg-transparent',
   danger: 'bg-error',
+  inverse: 'bg-white',
+  'outline-inverse': 'bg-white/5 border border-white/30',
 };
 
 const textByVariant: Record<Variant, string> = {
@@ -25,6 +28,8 @@ const textByVariant: Record<Variant, string> = {
   secondary: 'text-primary',
   ghost: 'text-accent',
   danger: 'text-white',
+  inverse: 'text-primary',
+  'outline-inverse': 'text-white',
 };
 
 export function Button({ label, onPress, variant = 'primary', loading = false, disabled = false, className = '' }: ButtonProps) {
@@ -39,7 +44,7 @@ export function Button({ label, onPress, variant = 'primary', loading = false, d
       onPress={onPress}
       className={`h-14 flex-row items-center justify-center rounded-2xl px-5 active:opacity-80 ${containerByVariant[variant]} ${inactive ? 'opacity-60' : ''} ${className}`}>
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? colors.card : colors.primary} />
+        <ActivityIndicator color={['primary', 'danger', 'outline-inverse'].includes(variant) ? colors.card : colors.primary} />
       ) : (
         <Text className={`text-base font-semibold ${textByVariant[variant]}`}>{label}</Text>
       )}
