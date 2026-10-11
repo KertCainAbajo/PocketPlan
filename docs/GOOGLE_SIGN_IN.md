@@ -1,73 +1,67 @@
 # Google sign-in setup
 
-PocketPlan uses **browser-based** Google sign-in. It works in **Expo Go** and in installed builds, on Android and iPhone, with no native Google SDK and no development build.
+PocketPlan uses browser-based Google sign-in. It works in Expo Go and installed builds on Android and iPhone, without a native Google SDK.
 
 ## How it works
 
 1. The app opens `GET /api/v1/auth/google/redirect` in a secure browser sheet.
-2. The backend sends the browser to Google, where the student picks an account.
-3. Google posts the signed ID token to `POST /api/v1/auth/google/callback`. The backend verifies it (audience, issuer, expiry, verified email, nonce), then signs the student in or creates the account.
-4. The browser is sent back to the app with a **one-time code**, valid for 2 minutes and usable once. The app trades it for its API token at `POST /api/v1/auth/google/exchange`. The API token never appears in a URL.
+2. The backend redirects to Google.
+3. Google posts a signed ID token to `POST /api/v1/auth/google/callback`. The backend verifies it and signs in an existing user or creates a student account.
+4. The browser returns to the app with a one-time code. The app exchanges it for its API token.
 
-Google only returns the browser to **HTTPS** addresses (or `localhost`), so during local development the backend is exposed through a free Cloudflare tunnel.
+The Google callback is configured by `GOOGLE_REDIRECT_URI` in `backend/.env`. Google requires that exact URL to be registered on the same OAuth Web application client whose ID is in `GOOGLE_CLIENT_IDS`.
 
-## Emulator only: no tunnel needed (recommended for development)
+## Android emulator
 
-Google accepts `http://localhost` redirect URIs. With `npm run emulator`, which runs `adb reverse tcp:8000`, the emulator's `localhost:8000` is your PC's backend. So use this **permanent** address:
+For emulator development, `npm run emulator` sets up `adb reverse tcp:8000`, which makes the backend on the PC available at the emulator's `localhost:8000`.
 
-- `backend/.env`: `GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback`
-- Google Cloud → your Web client → **Authorized redirect URIs**: add `http://localhost:8000/api/v1/auth/google/callback`
+Set this in `backend/.env`:
 
-You add it once and never change it. The tunnel below is only needed for a **physical phone**.
+```dotenv
+GOOGLE_CLIENT_IDS=<Web application client ID>
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
+```
 
-## One-time Google Cloud setup
+In Google Cloud Console, open APIs & Services > Credentials > the matching OAuth Web application client. Add this exact value under **Authorized redirect URIs**:
 
-In <https://console.cloud.google.com/> → APIs & Services:
+```text
+http://localhost:8000/api/v1/auth/google/callback
+```
 
-1. **OAuth consent screen**: add your Gmail (and testers) under **Test users** while the app is in "Testing".
-2. **Credentials → your Web application client**:
-   - Under **Authorized redirect URIs**, add `https://<your-tunnel>.trycloudflare.com/api/v1/auth/google/callback`.
-   - Copy the **Client ID** into `backend/.env` as `GOOGLE_CLIENT_IDS`.
+The URI must match exactly, including scheme, host, port, and path. If the Google consent screen is in Testing, add the signing-in Google account under **Test users**. The app reads no Google client ID from `mobile/.env`; it comes from the backend setting above. Android OAuth client IDs and SHA-1 fingerprints are not used by this browser flow.
 
-The Android OAuth client and SHA-1 are not needed for this method.
-
-## Every development session
+Start the backend and emulator setup:
 
 ```powershell
-# 1. Backend
 cd D:\PocketPlan\PocketPlan\backend
 php artisan serve --host=0.0.0.0 --port=8000
 
-# 2. Tunnel (new terminal); it prints https://<random-words>.trycloudflare.com
-& "$env:LOCALAPPDATA\cloudflared\cloudflared.exe" tunnel --url http://localhost:8000
-
-# 3. App (new terminal)
+# In another terminal
 cd D:\PocketPlan\PocketPlan\mobile
-npx expo start
+npm run emulator
 ```
 
-**The quick-tunnel address changes every time you restart cloudflared.** When it changes, update two places:
+## Physical phone or public deployment
 
-- `GOOGLE_REDIRECT_URI` in `backend/.env`, set to `https://<new-address>/api/v1/auth/google/callback`
-- the **Authorized redirect URI** in Google Cloud. Google can take a few minutes to apply it.
+A physical phone cannot reach the development PC through `localhost`. Expose the backend at a public HTTPS address, then set both `GOOGLE_REDIRECT_URI` and the mobile app's `EXPO_PUBLIC_API_URL` to that backend. Add the exact callback URL to the same OAuth Web client in Google Cloud.
 
-To avoid updating these every session, use a free fixed address instead. A free ngrok static domain or a named Cloudflare tunnel both work. In production, the backend's real HTTPS domain replaces the tunnel entirely.
+For example, if the backend's public address is `https://api.example.com`:
 
-## Configuration reference
+```dotenv
+# backend/.env
+GOOGLE_REDIRECT_URI=https://api.example.com/api/v1/auth/google/callback
 
-| `backend/.env` | Example |
-|---|---|
-| `GOOGLE_CLIENT_IDS` | `1234567890-abc.apps.googleusercontent.com` (Web client) |
-| `GOOGLE_REDIRECT_URI` | `https://approaches-pace-define-anne.trycloudflare.com/api/v1/auth/google/callback` |
+# mobile/.env
+EXPO_PUBLIC_API_URL=https://api.example.com/api/v1
+```
 
-The mobile app needs no Google settings. It only talks to `EXPO_PUBLIC_API_URL`.
+With a temporary Cloudflare quick tunnel, its address changes after a restart. Update both environment values and the authorized redirect URI each time it changes. A stable tunnel address avoids that step. Production uses the backend's HTTPS domain.
 
-## Account rules
+## Account behavior
 
 | Situation | Result |
 |---|---|
-| The Google account has signed in before | Signs in to the same PocketPlan account |
-| The email already has a PocketPlan account | Google is linked to it. Email and password still work |
-| A new email | A new student account is created. The button shows the Terms notice, and acceptance is recorded |
-| An admin email, or a deactivated account | The browser returns to the app with an error |
-| The app links that may receive codes | `pocketplan://`, plus Expo Go's `exp://` outside production |
+| Previously used Google account | Signs in to the same PocketPlan account |
+| Existing PocketPlan email | Links the verified Google account; password sign-in remains available |
+| New email | Creates a student account and records acceptance of the terms |
+| Admin or deactivated account | Returns an error to the app |

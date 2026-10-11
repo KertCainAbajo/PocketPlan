@@ -1,10 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import * as Device from 'expo-device';
+import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { getErrorMessage } from '@/lib/api-client';
-import { useAuthStore } from '@/store/auth-store';
-
 import { GoogleSignInError, signInWithGoogle } from './google';
 
 const deviceName = Device.modelName ?? Device.osName ?? 'mobile';
@@ -14,13 +13,12 @@ const deviceName = Device.modelName ?? Device.osName ?? 'mobile';
  * (the button shows that notice); existing students simply sign in.
  */
 export function useGoogleSignIn() {
-  const signIn = useAuthStore((s) => s.signIn);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: () => signInWithGoogle(deviceName),
     onSuccess: (payload) => {
-      if (payload) void signIn(payload.token, payload.user);
+      if (payload) router.replace('/');
     },
     onError: (e) => setError(e instanceof GoogleSignInError ? e.message : getErrorMessage(e)),
   });

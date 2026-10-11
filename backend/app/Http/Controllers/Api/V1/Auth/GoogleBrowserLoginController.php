@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\AuthTokenResource;
 use App\Models\User;
 use App\Services\Auth\GoogleIdTokenVerifier;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -34,7 +36,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class GoogleBrowserLoginController extends Controller
 {
-    private const STATE_TTL_MINUTES = 10;
+    private const STATE_TTL_MINUTES = 30;
 
     private const CODE_TTL_SECONDS = 120;
 
@@ -56,9 +58,8 @@ class GoogleBrowserLoginController extends Controller
             return $this->backToApp($appRedirect, ['error' => 'Google sign-in is not configured on this server.']);
         }
 
-        // The state is an encrypted, tamper-proof envelope carrying where to send
-        // the browser back. Its id is stored once, so each attempt works only once,
-        // but even a stale or replayed attempt can still return the student to the app.
+        // The encrypted state carries a signed destination, nonce, and age limit.
+        // The cache marker prevents replays when cache is shared by all workers.
         $attemptId = Str::random(32);
         $nonce = Str::random(40);
         $state = Crypt::encryptString(json_encode([
@@ -66,8 +67,15 @@ class GoogleBrowserLoginController extends Controller
             'redirect' => $appRedirect,
             'nonce' => $nonce,
             'terms' => $request->boolean('terms'),
+            'issued_at' => now()->timestamp,
         ], JSON_THROW_ON_ERROR));
-        Cache::put("google-oauth:attempt:{$attemptId}", true, now()->addMinutes(self::STATE_TTL_MINUTES));
+        $attemptKey = "google-oauth:attempt:{$attemptId}";
+        Cache::put($attemptKey, true, now()->addMinutes(self::STATE_TTL_MINUTES));
+        Log::info('Google OAuth attempt stored', [
+            'attempt' => substr(hash('sha256', $attemptId), 0, 12),
+            'cache_store' => Cache::getDefaultDriver(),
+            'stored' => Cache::has($attemptKey),
+        ]);
 
         return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query([
             'client_id' => $clientId,
@@ -90,33 +98,67 @@ class GoogleBrowserLoginController extends Controller
         }
 
         $appRedirect = $session['redirect'];
+        $resultKey = "google-oauth:result:{$session['id']}";
+        $attemptKey = "google-oauth:attempt:{$session['id']}";
 
-        // Used already (e.g. Android reopened an old browser tab) or older than 10 minutes.
-        if (! Cache::pull("google-oauth:attempt:{$session['id']}")) {
-            return $this->backToApp($appRedirect, ['error' => 'That Google sign-in had expired. Please tap Continue with Google again.']);
-        }
+        Log::info('Google OAuth callback received', [
+            'attempt' => substr(hash('sha256', $session['id']), 0, 12),
+            'host' => $request->getHost(),
+            'cache_store' => Cache::getDefaultDriver(),
+            'attempt_exists' => Cache::has($attemptKey),
+            'result_exists' => Cache::has($resultKey),
+        ]);
 
-        if ($request->filled('error') || ! $request->filled('id_token')) {
-            return $this->backToApp($appRedirect, ['error' => $request->input('error') === 'access_denied' ? 'cancelled' : 'Google sign-in failed. Please try again.']);
+        // Android may deliver the same callback through both the browser result
+        // and the app deep link. Reuse its result instead of treating the second
+        // delivery as an expired sign-in.
+        if ($code = Cache::get($resultKey)) {
+            return $this->backToApp($appRedirect, ['code' => $code]);
         }
 
         try {
-            $profile = $verifier->verify($request->string('id_token')->toString());
-            if (! hash_equals($session['nonce'], (string) $profile['nonce'])) {
-                return $this->backToApp($appRedirect, ['error' => 'Google sign-in failed. Please try again.']);
-            }
+            return Cache::lock("google-oauth:lock:{$session['id']}", 120)->block(30, function () use ($request, $session, $appRedirect, $attemptKey, $resultKey, $verifier, $google) {
+                if ($code = Cache::get($resultKey)) {
+                    return $this->backToApp($appRedirect, ['code' => $code]);
+                }
 
-            ['user' => $user] = $google->signIn($profile, (bool) $session['terms']);
-        } catch (ValidationException $e) {
-            return $this->backToApp($appRedirect, ['error' => collect($e->errors())->flatten()->first()]);
-        } catch (StudentAccountRequiredException|AccountDeactivatedException|HttpException $e) {
-            return $this->backToApp($appRedirect, ['error' => $e->getMessage()]);
+                $attemptExists = Cache::pull($attemptKey);
+                $stateAge = now()->timestamp - $session['issued_at'];
+                if (! $attemptExists || $stateAge < 0 || $stateAge > self::STATE_TTL_MINUTES * 60) {
+                    Log::warning('Google OAuth callback used an expired or already consumed attempt', [
+                        'attempt' => substr(hash('sha256', $session['id']), 0, 12),
+                        'host' => $request->getHost(),
+                        'state_age_seconds' => $stateAge,
+                    ]);
+                    return $this->backToApp($appRedirect, ['error' => 'That Google sign-in had expired. Please tap Continue with Google again.']);
+                }
+
+                if ($request->filled('error') || ! $request->filled('id_token')) {
+                    return $this->backToApp($appRedirect, ['error' => $request->input('error') === 'access_denied' ? 'cancelled' : 'Google sign-in failed. Please try again.']);
+                }
+
+                try {
+                    $profile = $verifier->verify($request->string('id_token')->toString());
+                    if (! hash_equals($session['nonce'], (string) $profile['nonce'])) {
+                        return $this->backToApp($appRedirect, ['error' => 'Google sign-in failed. Please try again.']);
+                    }
+
+                    ['user' => $user] = $google->signIn($profile, (bool) $session['terms']);
+                } catch (ValidationException $e) {
+                    return $this->backToApp($appRedirect, ['error' => collect($e->errors())->flatten()->first()]);
+                } catch (StudentAccountRequiredException|AccountDeactivatedException|HttpException $e) {
+                    return $this->backToApp($appRedirect, ['error' => $e->getMessage()]);
+                }
+
+                $code = Str::random(48);
+                Cache::put("google-oauth:code:{$code}", $user->id, now()->addSeconds(self::CODE_TTL_SECONDS));
+                Cache::put($resultKey, $code, now()->addSeconds(self::CODE_TTL_SECONDS));
+
+                return $this->backToApp($appRedirect, ['code' => $code]);
+            });
+        } catch (LockTimeoutException) {
+            return $this->backToApp($appRedirect, ['error' => 'Google sign-in is still finishing. Please return to PocketPlan.']);
         }
-
-        $code = Str::random(48);
-        Cache::put("google-oauth:code:{$code}", $user->id, now()->addSeconds(self::CODE_TTL_SECONDS));
-
-        return $this->backToApp($appRedirect, ['code' => $code]);
     }
 
     /** Trade the one-time code for an API token. Each code works once, for two minutes. */
@@ -127,18 +169,26 @@ class GoogleBrowserLoginController extends Controller
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $userId = Cache::pull('google-oauth:code:'.$request->string('code'));
+        $code = $request->string('code')->toString();
+        $userId = Cache::pull('google-oauth:code:'.$code);
         $user = $userId ? User::query()->find($userId) : null;
 
         if (! $user) {
+            Log::warning('Google OAuth exchange code missing', [
+                'code' => substr(hash('sha256', $code), 0, 12),
+                'cache_store' => Cache::getDefaultDriver(),
+            ]);
             throw ValidationException::withMessages(['code' => ['This sign-in has expired. Please try again.']]);
         }
 
-        return (new AuthTokenResource($issueToken->handle($user, $request->input('device_name')), $user))->response();
+        $token = $issueToken->handle($user, $request->input('device_name'));
+        Log::info('Google OAuth exchange completed', ['user_id' => $user->id, 'token_id' => $token->accessToken->id]);
+
+        return (new AuthTokenResource($token, $user))->response();
     }
 
     /**
-     * @return array{id: string, redirect: string, nonce: string, terms: bool}|null
+     * @return array{id: string, redirect: string, nonce: string, terms: bool, issued_at: int}|null
      */
     private function decodeState(string $state): ?array
     {
@@ -152,6 +202,7 @@ class GoogleBrowserLoginController extends Controller
             && is_string($data['id'] ?? null)
             && is_string($data['redirect'] ?? null)
             && is_string($data['nonce'] ?? null)
+            && is_int($data['issued_at'] ?? null)
             && $this->isAllowedAppRedirect($data['redirect']);
 
         return $valid ? [
@@ -159,6 +210,7 @@ class GoogleBrowserLoginController extends Controller
             'redirect' => $data['redirect'],
             'nonce' => $data['nonce'],
             'terms' => (bool) ($data['terms'] ?? false),
+            'issued_at' => $data['issued_at'],
         ] : null;
     }
 
