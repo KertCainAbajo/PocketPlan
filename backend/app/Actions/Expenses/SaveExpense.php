@@ -49,6 +49,7 @@ class SaveExpense
     private function fill(Expense $expense, User $user, array $input): Expense
     {
         $expense->fill([
+            'account_id' => $input['account_id'] ?? $user->ensureDefaultAccount()->id,
             'category_id' => $input['category_id'],
             'amount' => $input['amount'],
             'description' => $input['description'],

@@ -26,6 +26,7 @@ class ExpenseRequest extends FormRequest
             : null;
 
         return [
+            'account_id' => ['nullable', 'integer', Rule::exists('accounts', 'id')->where('user_id', $this->user()->id)],
             'category_id' => ['required', 'integer', new SelectableCategory($this->user(), CategoryType::Expense, $current)],
             'amount' => $this->moneyRules(),
             'description' => ['required', 'string', 'max:150'],

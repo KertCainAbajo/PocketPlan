@@ -29,6 +29,7 @@ class Income extends Model
 
     /** user_id and recurring_income_id are assigned by the server. */
     protected $fillable = [
+        'account_id',
         'category_id',
         'amount',
         'description',
@@ -51,6 +52,12 @@ class Income extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<Account, $this> */
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
     }
 
     /** @return BelongsTo<Category, $this> */

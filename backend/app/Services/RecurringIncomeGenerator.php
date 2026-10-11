@@ -95,6 +95,7 @@ class RecurringIncomeGenerator
                     'received_on' => $date->toDateString(),
                 ]);
                 $income->user_id = $schedule->user_id;
+                $income->account_id = $schedule->user->ensureDefaultAccount()->id;
                 $income->recurring_income_id = $schedule->id;
                 $income->save();
             });

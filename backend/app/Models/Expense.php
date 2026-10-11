@@ -29,6 +29,7 @@ class Expense extends Model
 
     /** user_id and budget_id are assigned by the server, never mass-assigned. */
     protected $fillable = [
+        'account_id',
         'category_id',
         'amount',
         'description',
@@ -53,6 +54,12 @@ class Expense extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<Account, $this> */
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
     }
 
     /** @return BelongsTo<Budget, $this> */

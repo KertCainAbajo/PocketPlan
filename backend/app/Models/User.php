@@ -120,6 +120,29 @@ class User extends Authenticatable
         return $this->hasMany(Budget::class);
     }
 
+    /** @return HasMany<Account, $this> */
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(Account::class);
+    }
+
+    /** @return HasOne<Account, $this> */
+    public function defaultAccount(): HasOne
+    {
+        return $this->hasOne(Account::class)->where('is_default', true);
+    }
+
+    /** Create the personal default account when this user has none yet. */
+    public function ensureDefaultAccount(): Account
+    {
+        return $this->defaultAccount()->firstOrCreate([], [
+            'name' => 'Everyday account',
+            'type' => 'cash',
+            'opening_balance' => '0.00',
+            'is_default' => true,
+        ]);
+    }
+
     /** @return HasMany<Expense, $this> */
     public function expenses(): HasMany
     {

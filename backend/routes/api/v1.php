@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\GoogleBrowserLoginController;
 use App\Http\Controllers\Api\V1\Auth\GoogleLoginController;
@@ -52,6 +53,8 @@ Route::middleware(['auth:sanctum', 'active', 'student', 'throttle:api'])->group(
 
     Route::post('onboarding', OnboardingController::class)->name('onboarding');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index');
+    Route::post('accounts', [AccountController::class, 'store'])->name('accounts.store');
 
     Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'update']);
 
