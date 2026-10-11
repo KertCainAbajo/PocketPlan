@@ -64,6 +64,38 @@ export interface ActivityPage {
   hasMore: boolean;
 }
 
+export interface TransactionCategory {
+  id: number;
+  type: 'expense' | 'income';
+  name: string;
+  icon: string;
+  color: string | null;
+}
+
+export interface TransactionDetails {
+  id: number;
+  amount: string;
+  description: string;
+  notes: string | null;
+  payment_method?: string | null;
+  spent_on?: string;
+  received_on?: string;
+  budget_id?: number | null;
+  recurring_income_id?: number | null;
+  category: TransactionCategory;
+  created_at: string | null;
+}
+
+export interface TransactionInput {
+  category_id: number;
+  amount: string;
+  description: string;
+  notes?: string | null;
+  payment_method?: string | null;
+  spent_on?: string;
+  received_on?: string;
+}
+
 export const activityApi = {
   async getPage(page: number, search: string): Promise<ActivityPage> {
     const params = { page, per_page: 10, sort: 'newest', ...(search.trim() ? { search: search.trim() } : {}) };
@@ -93,5 +125,26 @@ export const activityApi = {
         expenses.data.meta.current_page < expenses.data.meta.last_page ||
         incomes.data.meta.current_page < incomes.data.meta.last_page,
     };
+  },
+};
+
+export const transactionApi = {
+  async get(type: 'expense' | 'income', id: number): Promise<TransactionDetails> {
+    const { data } = await api.get<{ data: TransactionDetails }>(`/${type === 'expense' ? 'expenses' : 'incomes'}/${id}`);
+    return data.data;
+  },
+  async categories(type: 'expense' | 'income'): Promise<TransactionCategory[]> {
+    const { data } = await api.get<{ data: TransactionCategory[] }>('/categories', { params: { type } });
+    return data.data;
+  },
+  async save(type: 'expense' | 'income', input: TransactionInput, id?: number): Promise<TransactionDetails> {
+    const path = `/${type === 'expense' ? 'expenses' : 'incomes'}${id ? `/${id}` : ''}`;
+    const { data } = id
+      ? await api.put<{ data: TransactionDetails }>(path, input)
+      : await api.post<{ data: TransactionDetails }>(path, input);
+    return data.data;
+  },
+  async remove(type: 'expense' | 'income', id: number): Promise<void> {
+    await api.delete(`/${type === 'expense' ? 'expenses' : 'incomes'}/${id}`);
   },
 };

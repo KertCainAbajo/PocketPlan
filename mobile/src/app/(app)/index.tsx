@@ -153,8 +153,8 @@ export default function HomeScreen() {
         </View>
 
         <View className="mt-3 flex-row gap-2.5">
-          <ActionButton label="Add expense" onPress={() => openComingSoon('Add expense')} />
-          <ActionButton label="Add income" secondary onPress={() => openComingSoon('Add income')} />
+          <ActionButton label="Add expense" onPress={() => router.push({ pathname: '/transaction-form', params: { type: 'expense' } })} />
+          <ActionButton label="Add income" secondary onPress={() => router.push({ pathname: '/transaction-form', params: { type: 'income' } })} />
         </View>
 
         <View className="mb-2 mt-5 flex-row items-center justify-between">

@@ -84,6 +84,12 @@ export default function ActivityScreen() {
   const currency = data?.currency ?? user?.currency;
   const month = data?.this_month;
 
+  const addTransaction = () => Alert.alert('Add a transaction', 'Choose a transaction type.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Expense', onPress: () => router.push({ pathname: '/transaction-form', params: { type: 'expense' } }) },
+    { text: 'Income', onPress: () => router.push({ pathname: '/transaction-form', params: { type: 'income' } }) },
+  ]);
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <ScrollView
@@ -95,7 +101,7 @@ export default function ActivityScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Add transaction"
-            onPress={() => Alert.alert('Add a transaction', 'Transaction entry is not available yet.')}
+            onPress={addTransaction}
             className="h-10 w-10 items-center justify-center rounded-full active:bg-accent-light">
             <Plus size={20} color={colors.accent} />
           </Pressable>
@@ -183,7 +189,7 @@ export default function ActivityScreen() {
           </Pressable>
         )}
 
-        <Pressable onPress={() => Alert.alert('Add a transaction', 'Transaction entry is not available yet.')} className="mt-2 h-11 flex-row items-center justify-center gap-2 rounded-xl bg-primary active:opacity-80">
+        <Pressable onPress={addTransaction} className="mt-2 h-11 flex-row items-center justify-center gap-2 rounded-xl bg-primary active:opacity-80">
           <Text className="text-[11px] font-semibold text-white">Add a transaction</Text><Plus size={14} color="#FFFFFF" />
         </Pressable>
       </ScrollView>
@@ -209,11 +215,11 @@ function ActivityRow({ transaction, currency, last }: { transaction: ActivityTra
   const Icon = income ? BriefcaseBusiness : savings ? WalletCards : ShoppingBasket;
   const date = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(dateAtNoon(transaction.date));
   return (
-    <View className={`flex-row items-center py-3 ${last ? '' : 'border-b border-[#F1F2F7]'}`}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`View ${transaction.description}`} onPress={() => router.push({ pathname: '/transaction-details', params: { type: transaction.type, id: String(transaction.id) } })} className={`flex-row items-center py-3 ${last ? '' : 'border-b border-[#F1F2F7]'}`}>
       <View className={`mr-2.5 h-9 w-9 items-center justify-center rounded-xl ${income ? 'bg-[#DDF7E8]' : 'bg-accent-light'}`}><Icon size={15} color={income ? '#388867' : colors.accent} strokeWidth={1.7} /></View>
       <View className="flex-1"><Text numberOfLines={1} className="text-[10px] font-semibold text-ink">{transaction.description}</Text><Text numberOfLines={1} className="mt-0.5 text-[8px] text-muted">{transaction.category.name} · {income ? 'Income' : savings ? 'Savings transfer' : 'Everyday account'} · {date}</Text></View>
       <View className="ml-2 flex-row items-center"><>{income ? <ArrowDownLeft size={11} color="#388867" /> : <ArrowUpRight size={11} color={colors.primary} />}</><Text className={`text-[10px] font-medium ${income ? 'text-[#2F8064]' : 'text-primary'}`}>{income ? '+' : '−'}{money(transaction.amount, currency)}</Text></View>
-    </View>
+    </Pressable>
   );
 }
 
