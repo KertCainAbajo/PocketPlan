@@ -21,7 +21,11 @@ export async function signInWithGoogle(deviceName: string): Promise<AuthPayload 
   const returnUrl = Linking.createURL('oauth/google');
   const startUrl = `${config.apiUrl}/auth/google/redirect?${new URLSearchParams({ redirect_uri: returnUrl, terms: '1' })}`;
 
-  const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl);
+  // Android cannot close Chrome Custom Tabs from code. The tab therefore runs as its own
+  // task (createTask, the default): when Google's return link opens, Android brings
+  // PocketPlan to the front automatically. showInRecents: false keeps that tab out of
+  // the recent-apps list so an old, already-used sign-in is not reopened later.
+  const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl, { createTask: true, showInRecents: false });
   if (result.type !== 'success') return null; // sheet closed
 
   const { queryParams } = Linking.parse(result.url);

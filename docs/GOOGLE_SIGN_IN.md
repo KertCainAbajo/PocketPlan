@@ -11,6 +11,15 @@ PocketPlan uses **browser-based** Google sign-in. It works in **Expo Go** and in
 
 Google only returns the browser to **HTTPS** addresses (or `localhost`), so during local development the backend is exposed through a free Cloudflare tunnel.
 
+## Emulator only: no tunnel needed (recommended for development)
+
+Google accepts `http://localhost` redirect URIs. With `npm run emulator`, which runs `adb reverse tcp:8000`, the emulator's `localhost:8000` is your PC's backend. So use this **permanent** address:
+
+- `backend/.env`: `GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback`
+- Google Cloud → your Web client → **Authorized redirect URIs**: add `http://localhost:8000/api/v1/auth/google/callback`
+
+You add it once and never change it. The tunnel below is only needed for a **physical phone**.
+
 ## One-time Google Cloud setup
 
 In <https://console.cloud.google.com/> → APIs & Services:

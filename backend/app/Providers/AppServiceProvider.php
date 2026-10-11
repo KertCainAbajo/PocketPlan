@@ -45,6 +45,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
 
+        // Browser-based Google sign-in: one attempt makes three requests (start, Google's
+        // return, code exchange), so it needs more room than password login. Each
+        // attempt is still single-use and protected by an encrypted state and nonce.
+        RateLimiter::for('google-oauth', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+
         RateLimiter::for('admin', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
         // Students reset their password from the mobile app via a deep link.

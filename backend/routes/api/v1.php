@@ -34,12 +34,15 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('register', RegisterController::class)->name('register');
     Route::post('login', LoginController::class)->name('login');
     Route::post('auth/google', GoogleLoginController::class)->name('auth.google');
-    // Browser-based Google sign-in (works in Expo Go). See GoogleBrowserLoginController.
+    Route::post('forgot-password', ForgotPasswordController::class)->name('password.email');
+    Route::post('reset-password', ResetPasswordController::class)->name('password.reset');
+});
+
+// Browser-based Google sign-in (works in Expo Go). See GoogleBrowserLoginController.
+Route::middleware('throttle:google-oauth')->group(function () {
     Route::get('auth/google/redirect', [GoogleBrowserLoginController::class, 'redirect'])->name('auth.google.redirect');
     Route::post('auth/google/callback', [GoogleBrowserLoginController::class, 'callback'])->name('auth.google.callback');
     Route::post('auth/google/exchange', [GoogleBrowserLoginController::class, 'exchange'])->name('auth.google.exchange');
-    Route::post('forgot-password', ForgotPasswordController::class)->name('password.email');
-    Route::post('reset-password', ResetPasswordController::class)->name('password.reset');
 });
 
 // Every student endpoint: valid token, active account, student role.

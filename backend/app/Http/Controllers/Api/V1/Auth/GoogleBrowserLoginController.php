@@ -10,11 +10,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\AuthTokenResource;
 use App\Models\User;
 use App\Services\Auth\GoogleIdTokenVerifier;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -54,13 +56,18 @@ class GoogleBrowserLoginController extends Controller
             return $this->backToApp($appRedirect, ['error' => 'Google sign-in is not configured on this server.']);
         }
 
-        $state = Str::random(40);
+        // The state is an encrypted, tamper-proof envelope carrying where to send
+        // the browser back. Its id is stored once, so each attempt works only once,
+        // but even a stale or replayed attempt can still return the student to the app.
+        $attemptId = Str::random(32);
         $nonce = Str::random(40);
-        Cache::put("google-oauth:state:{$state}", [
+        $state = Crypt::encryptString(json_encode([
+            'id' => $attemptId,
             'redirect' => $appRedirect,
             'nonce' => $nonce,
             'terms' => $request->boolean('terms'),
-        ], now()->addMinutes(self::STATE_TTL_MINUTES));
+        ], JSON_THROW_ON_ERROR));
+        Cache::put("google-oauth:attempt:{$attemptId}", true, now()->addMinutes(self::STATE_TTL_MINUTES));
 
         return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query([
             'client_id' => $clientId,
@@ -77,12 +84,17 @@ class GoogleBrowserLoginController extends Controller
     /** Google posts here (form_post) after the student picks an account, or cancels. */
     public function callback(Request $request, GoogleIdTokenVerifier $verifier, AuthenticateWithGoogle $google): RedirectResponse|Response
     {
-        $session = Cache::pull('google-oauth:state:'.$request->input('state'));
-        if (! is_array($session)) {
-            return $this->page('This sign-in attempt has expired. Go back to PocketPlan and try again.', 400);
+        $session = $this->decodeState((string) $request->input('state'));
+        if ($session === null) {
+            return $this->page('This sign-in link is not valid. Go back to PocketPlan and try again.', 400);
         }
 
         $appRedirect = $session['redirect'];
+
+        // Used already (e.g. Android reopened an old browser tab) or older than 10 minutes.
+        if (! Cache::pull("google-oauth:attempt:{$session['id']}")) {
+            return $this->backToApp($appRedirect, ['error' => 'That Google sign-in had expired. Please tap Continue with Google again.']);
+        }
 
         if ($request->filled('error') || ! $request->filled('id_token')) {
             return $this->backToApp($appRedirect, ['error' => $request->input('error') === 'access_denied' ? 'cancelled' : 'Google sign-in failed. Please try again.']);
@@ -123,6 +135,31 @@ class GoogleBrowserLoginController extends Controller
         }
 
         return (new AuthTokenResource($issueToken->handle($user, $request->input('device_name')), $user))->response();
+    }
+
+    /**
+     * @return array{id: string, redirect: string, nonce: string, terms: bool}|null
+     */
+    private function decodeState(string $state): ?array
+    {
+        try {
+            $data = json_decode(Crypt::decryptString($state), true, 4, JSON_THROW_ON_ERROR);
+        } catch (DecryptException|\JsonException) {
+            return null;
+        }
+
+        $valid = is_array($data)
+            && is_string($data['id'] ?? null)
+            && is_string($data['redirect'] ?? null)
+            && is_string($data['nonce'] ?? null)
+            && $this->isAllowedAppRedirect($data['redirect']);
+
+        return $valid ? [
+            'id' => $data['id'],
+            'redirect' => $data['redirect'],
+            'nonce' => $data['nonce'],
+            'terms' => (bool) ($data['terms'] ?? false),
+        ] : null;
     }
 
     /**

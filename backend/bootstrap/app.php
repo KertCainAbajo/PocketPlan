@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureStudent;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -38,6 +39,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Resource not found.'], 404);
+            }
+        });
+
+        // The Google sign-in redirect and callback are shown in a browser tab, not
+        // parsed by the app, so answer with a readable page instead of JSON.
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/v1/auth/google/redirect', 'api/v1/auth/google/callback')) {
+                return response(
+                    '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>PocketPlan</title>'
+                    .'<body style="font-family:system-ui;padding:32px;color:#202534;background:#F7F8FC"><h2 style="color:#243B6B">PocketPlan</h2>'
+                    .'<p>Too many sign-in attempts. Please wait a minute, close this page and try again.</p></body>',
+                    429,
+                    $e->getHeaders(),
+                );
             }
         });
     })->create();
