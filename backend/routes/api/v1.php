@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\IncomeController;
 use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RecurringIncomeController;
+use App\Http\Controllers\Api\V1\SavingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -53,6 +54,7 @@ Route::middleware(['auth:sanctum', 'active', 'student', 'throttle:api'])->group(
 
     Route::post('onboarding', OnboardingController::class)->name('onboarding');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('savings', SavingsController::class)->name('savings.index');
     Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index');
     Route::post('accounts', [AccountController::class, 'store'])->name('accounts.store');
 

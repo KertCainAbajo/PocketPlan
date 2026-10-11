@@ -23,6 +23,7 @@ class DashboardService
         private readonly BudgetPeriods $periods,
         private readonly BudgetSummaryService $summaries,
         private readonly RecurringIncomeGenerator $recurring,
+        private readonly AllowancePeriodManager $allowancePeriods,
     ) {}
 
     /**
@@ -32,6 +33,7 @@ class DashboardService
     {
         // Record any recurring income that fell due since the last visit.
         $this->recurring->generateForUser($user);
+        $this->allowancePeriods->ensureCurrent($user);
 
         $today = $user->today();
         $monthTotals = $this->balance->totalsBetween($user, $today->copy()->startOfMonth(), $today->copy()->endOfMonth());
@@ -44,6 +46,7 @@ class DashboardService
             'currency' => $user->currency,
             'today' => $today->toDateString(),
             'available_balance' => Money::format($this->balance->available($user)),
+            'savings_total' => Money::format($this->balance->savingsTotal($user)),
             'this_month' => [
                 'income' => Money::format($monthTotals['income']),
                 'expenses' => Money::format($monthTotals['expenses']),

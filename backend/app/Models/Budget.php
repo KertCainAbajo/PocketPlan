@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,6 +22,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon $start_date
  * @property Carbon $end_date inclusive
  * @property AllowanceFrequency $frequency
+ * @property bool $is_allowance
+ * @property int|null $recurring_income_id
+ * @property int|null $allowance_occurrence
  * @property BudgetStatus $status
  * @property Carbon|null $completed_at
  * @property Carbon|null $created_at
@@ -38,6 +42,9 @@ class Budget extends Model
         'start_date',
         'end_date',
         'frequency',
+        'is_allowance',
+        'recurring_income_id',
+        'allowance_occurrence',
     ];
 
     /** @var array<string, mixed> */
@@ -56,6 +63,8 @@ class Budget extends Model
             'end_date' => 'date',
             'completed_at' => 'datetime',
             'frequency' => AllowanceFrequency::class,
+            'is_allowance' => 'boolean',
+            'allowance_occurrence' => 'integer',
             'status' => BudgetStatus::class,
         ];
     }
@@ -76,6 +85,18 @@ class Budget extends Model
     public function categoryLimits(): HasMany
     {
         return $this->hasMany(BudgetCategoryLimit::class);
+    }
+
+    /** @return HasOne<BudgetRollover, $this> */
+    public function rollover(): HasOne
+    {
+        return $this->hasOne(BudgetRollover::class);
+    }
+
+    /** @return BelongsTo<RecurringIncome, $this> */
+    public function recurringIncome(): BelongsTo
+    {
+        return $this->belongsTo(RecurringIncome::class);
     }
 
     public function isActive(): bool

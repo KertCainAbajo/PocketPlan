@@ -120,6 +120,12 @@ class User extends Authenticatable
         return $this->hasMany(Budget::class);
     }
 
+    /** @return HasMany<BudgetRollover, $this> */
+    public function budgetRollovers(): HasMany
+    {
+        return $this->hasMany(BudgetRollover::class);
+    }
+
     /** @return HasMany<Account, $this> */
     public function accounts(): HasMany
     {

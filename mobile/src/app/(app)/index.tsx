@@ -193,17 +193,17 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        <Pressable onPress={() => openComingSoon('Savings goals')} className="mt-3 flex-row items-start gap-3 rounded-[20px] bg-accent-light px-4 py-4 active:opacity-80">
+        <Pressable onPress={() => router.navigate('/savings')} className="mt-3 flex-row items-start gap-3 rounded-[20px] bg-accent-light px-4 py-4 active:opacity-80">
           <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-xl bg-white/75">
             <Sprout size={17} color={colors.accent} strokeWidth={1.8} />
           </View>
           <View className="flex-1">
-            <Text className="text-[12px] font-semibold text-primary">Small steps add up</Text>
+            <Text className="text-[12px] font-semibold text-primary">Savings so far · {money(data?.savings_total, currency)}</Text>
             <Text className="mt-1 text-[11px] leading-[16px] text-primary/75">
-              Set a savings goal and follow your progress as you build a little more security.
+              Review your total savings and see what you saved in each allowance period.
             </Text>
             <View className="mt-2 flex-row items-center gap-1">
-              <Text className="text-[10px] font-semibold text-primary">Explore savings goals</Text>
+              <Text className="text-[10px] font-semibold text-primary">View savings breakdown</Text>
               <ArrowRight size={12} color={colors.primary} />
             </View>
           </View>
@@ -248,8 +248,8 @@ export default function HomeScreen() {
       <View className="flex-row border-t border-border bg-card px-1 pb-1 pt-2">
         <TabItem label="Home" active icon={<House size={17} color={colors.primary} />} onPress={() => undefined} />
         <TabItem label="Activity" icon={<ArrowLeftRight size={17} color={colors.textSecondary} />} onPress={() => router.navigate('/activity')} />
-        <TabItem label="Budgets" icon={<ChartNoAxesColumn size={17} color={colors.textSecondary} />} onPress={() => openComingSoon('Budgets')} />
-        <TabItem label="Goals" icon={<Flag size={17} color={colors.textSecondary} />} onPress={() => openComingSoon('Savings goals')} />
+        <TabItem label="Budgets" icon={<ChartNoAxesColumn size={17} color={colors.textSecondary} />} onPress={() => router.navigate('/budgets')} />
+        <TabItem label="Goals" icon={<Flag size={17} color={colors.textSecondary} />} onPress={() => router.navigate('/savings')} />
         <TabItem label="Profile" icon={<UserRound size={17} color={colors.textSecondary} />} onPress={openProfile} />
       </View>
     </SafeAreaView>

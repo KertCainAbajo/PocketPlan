@@ -11,6 +11,7 @@ enum RecurrenceFrequency: string
     case Weekly = 'weekly';
     case Biweekly = 'biweekly';
     case Monthly = 'monthly';
+    case Yearly = 'yearly';
 
     /**
      * Date of the n-th payment (0 = the start date). Always computed from the
@@ -23,6 +24,7 @@ enum RecurrenceFrequency: string
             self::Weekly => $start->addWeeks($n),
             self::Biweekly => $start->addWeeks(2 * $n),
             self::Monthly => $start->addMonthsNoOverflow($n),
+            self::Yearly => $start->addYearsNoOverflow($n),
         };
     }
 }

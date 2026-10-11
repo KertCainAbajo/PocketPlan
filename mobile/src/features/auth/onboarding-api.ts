@@ -1,7 +1,7 @@
 import { api } from '@/lib/api-client';
 import type { ApiResource, User } from '@/types/api';
 
-export type AllowanceFrequency = 'daily' | 'weekly' | 'monthly' | 'custom';
+export type AllowanceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export interface OnboardingInput {
   currency: string;

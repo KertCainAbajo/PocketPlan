@@ -55,14 +55,16 @@ class CompleteOnboarding
             $user->forceFill(['currency' => $input['currency'], 'onboarded_at' => now()])->save();
 
             $recurrence = ($input['recurring'] ?? false) ? $frequency->recurrence() : null;
+            $allowanceSchedule = null;
             if ($recurrence) {
                 // The schedule records the first payment itself when it is due.
-                $this->createRecurringIncome->handle($user, [
+                $allowanceSchedule = $this->createRecurringIncome->handle($user, [
                     'category_id' => $allowanceCategory->id,
                     'amount' => $input['allowance_amount'],
                     'description' => 'Allowance',
                     'frequency' => $recurrence->value,
                     'start_date' => $start->toDateString(),
+                    'is_allowance' => true,
                 ]);
             } elseif ($start->lessThanOrEqualTo($user->today())) {
                 $income = new Income([
@@ -75,13 +77,21 @@ class CompleteOnboarding
                 $income->save();
             }
 
-            $this->saveBudget->create($user, [
+            $budget = $this->saveBudget->create($user, [
                 'name' => ucfirst($frequency->value).' budget',
                 'spending_limit' => $input['allowance_amount'],
                 'frequency' => $frequency->value,
                 'start_date' => $start->toDateString(),
                 'end_date' => $input['end_date'] ?? null,
             ]);
+
+            if ($allowanceSchedule) {
+                $budget->forceFill([
+                    'is_allowance' => true,
+                    'recurring_income_id' => $allowanceSchedule->id,
+                    'allowance_occurrence' => 0,
+                ])->save();
+            }
 
             if (! empty($input['savings_goal'])) {
                 $goal = new SavingsGoal([

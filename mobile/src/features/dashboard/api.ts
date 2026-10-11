@@ -15,6 +15,7 @@ export interface DashboardData {
   currency: string;
   today: string;
   available_balance: string;
+  savings_total: string;
   this_month: { income: string; expenses: string; net: string };
   today_spending: string;
   budget: null | {
@@ -42,13 +43,43 @@ export const dashboardApi = {
   },
 };
 
+export interface SavingsOverview {
+  currency: string;
+  year: number;
+  total_saved: string;
+  allowance_rollovers_total: string;
+  goal_contributions_total: string;
+  year_total_saved: string;
+  year_rollovers_total: string;
+  year_goal_contributions_total: string;
+  periods: {
+    id: number;
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+    allowance_amount: string;
+    spent: string;
+    saved_amount: string;
+    start_date: string;
+    end_date: string;
+    saved_on: string;
+  }[];
+}
+
+export const savingsApi = {
+  async get(year: number): Promise<SavingsOverview> {
+    const { data } = await api.get<{ data: SavingsOverview }>('/savings', { params: { year } });
+    return data.data;
+  },
+};
+
 export interface ActivityTransaction extends DashboardTransaction {
+  account_id?: number | null;
   category: { id: number; name: string; icon: string; type?: string };
 }
 
 interface TransactionPage {
   data: {
     id: number;
+    account_id?: number | null;
     amount: string;
     description: string;
     spent_on?: string;
@@ -118,11 +149,22 @@ export interface BudgetItem {
   id: number;
   name: string;
   spending_limit: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
   start_date: string;
   end_date: string;
   status: 'active' | 'completed';
   summary: { spent_total: string; remaining: string; percent_used: number; is_overspent: boolean };
+  category_limits?: {
+    category_id: number;
+    category_name: string;
+    category_icon: string;
+    limit_amount: string;
+    spent: string;
+    remaining: string;
+    percent_used: number;
+    status: string;
+  }[];
+  savings_rollover?: { amount: string; saved_on: string } | null;
 }
 
 export const budgetApi = {
@@ -130,8 +172,16 @@ export const budgetApi = {
     const { data } = await api.get<{ data: BudgetItem[] }>('/budgets', { params: { per_page: 50 } });
     return data.data;
   },
+  async get(id: number): Promise<BudgetItem> {
+    const { data } = await api.get<{ data: BudgetItem }>(`/budgets/${id}`);
+    return data.data;
+  },
   async create(input: { name: string; spending_limit: string; frequency: BudgetItem['frequency']; start_date: string }): Promise<BudgetItem> {
     const { data } = await api.post<{ data: BudgetItem }>('/budgets', input);
+    return data.data;
+  },
+  async update(id: number, input: { name: string; spending_limit: string; frequency: BudgetItem['frequency']; start_date: string; end_date: string; category_limits: { category_id: number; limit_amount: string }[] }): Promise<BudgetItem> {
+    const { data } = await api.put<{ data: BudgetItem }>(`/budgets/${id}`, input);
     return data.data;
   },
 };
@@ -148,6 +198,7 @@ export const activityApi = {
         type,
         id: row.id,
         amount: row.amount,
+        account_id: row.account_id,
         description: row.description,
         date: row.spent_on ?? row.received_on ?? '',
         created_at: row.created_at,

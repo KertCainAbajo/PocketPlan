@@ -18,7 +18,7 @@ class BalanceService
     {
         return Money::sum($user->incomes()->toBase())
             ->minus(Money::sum($user->expenses()->toBase()))
-            ->minus($this->netSavings($user));
+            ->minus($this->savingsTotal($user));
     }
 
     /**
@@ -31,7 +31,7 @@ class BalanceService
 
         return Money::sum($user->incomes()->toBase())
             ->minus($expensesBeforeToday)
-            ->minus($this->netSavings($user));
+            ->minus($this->savingsTotal($user));
     }
 
     /**
@@ -47,8 +47,14 @@ class BalanceService
         ];
     }
 
-    private function netSavings(User $user): BigDecimal
+    public function savingsTotal(User $user): BigDecimal
     {
-        return Money::sum(SavingsContribution::query()->where('user_id', $user->id)->toBase());
+        return Money::sum(SavingsContribution::query()->where('user_id', $user->id)->toBase())
+            ->plus($this->periodSavings($user));
+    }
+
+    private function periodSavings(User $user): BigDecimal
+    {
+        return Money::sum($user->budgetRollovers()->toBase());
     }
 }

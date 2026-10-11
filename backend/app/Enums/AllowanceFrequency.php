@@ -10,6 +10,7 @@ enum AllowanceFrequency: string
     case Daily = 'daily';
     case Weekly = 'weekly';
     case Monthly = 'monthly';
+    case Yearly = 'yearly';
     case Custom = 'custom';
 
     /** Inclusive end date for a period starting on $start; null for custom (client must choose). */
@@ -19,6 +20,7 @@ enum AllowanceFrequency: string
             self::Daily => $start,
             self::Weekly => $start->addDays(6),
             self::Monthly => $start->addMonthNoOverflow()->subDay(),
+            self::Yearly => $start->addYearNoOverflow()->subDay(),
             self::Custom => null,
         };
     }
@@ -30,6 +32,7 @@ enum AllowanceFrequency: string
             self::Daily => RecurrenceFrequency::Daily,
             self::Weekly => RecurrenceFrequency::Weekly,
             self::Monthly => RecurrenceFrequency::Monthly,
+            self::Yearly => RecurrenceFrequency::Yearly,
             self::Custom => null,
         };
     }

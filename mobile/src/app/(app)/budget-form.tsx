@@ -12,7 +12,7 @@ import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
-const frequencies: BudgetItem['frequency'][] = ['daily', 'weekly', 'monthly'];
+const frequencies: BudgetItem['frequency'][] = ['daily', 'weekly', 'monthly', 'yearly'];
 const today = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
 
 export default function BudgetFormScreen() {

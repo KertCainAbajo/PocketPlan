@@ -17,6 +17,7 @@ use App\Services\RecurringIncomeGenerator;
  *     frequency: string,
  *     start_date: string,
  *     end_date?: string|null,
+ *     is_allowance?: bool,
  * }
  */
 class CreateRecurringIncome
@@ -35,6 +36,7 @@ class CreateRecurringIncome
             'frequency' => $input['frequency'],
             'start_date' => $input['start_date'],
             'end_date' => $input['end_date'] ?? null,
+            'is_allowance' => $input['is_allowance'] ?? false,
         ]);
         $schedule->user()->associate($user);
         $schedule->occurrences_generated = 0;

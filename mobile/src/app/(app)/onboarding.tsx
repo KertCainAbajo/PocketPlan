@@ -17,6 +17,7 @@ const frequencies: { value: AllowanceFrequency; label: string }[] = [
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
 ];
 const currencies = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'KRW', 'SGD', 'HKD', 'AUD', 'CAD'];
 

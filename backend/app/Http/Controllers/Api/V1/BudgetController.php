@@ -9,6 +9,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BudgetRequest;
 use App\Http\Requests\Api\V1\CompleteBudgetRequest;
 use App\Http\Resources\V1\BudgetResource;
+use App\Services\AllowancePeriodManager;
+use App\Services\RecurringIncomeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -17,12 +19,14 @@ use Illuminate\Validation\Rule;
 class BudgetController extends Controller
 {
     /** Newest first. ?status=active|completed */
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request, AllowancePeriodManager $allowances, RecurringIncomeGenerator $recurring): AnonymousResourceCollection
     {
+        $recurring->generateForUser($request->user());
+        $allowances->ensureCurrent($request->user());
         $request->validate(['status' => ['nullable', Rule::enum(BudgetStatus::class)]]);
 
         $budgets = $request->user()->budgets()
-            ->with('user.notificationPreference')
+            ->with(['user.notificationPreference', 'rollover'])
             ->when($request->input('status'), fn ($q, $status) => $q->where('status', $status))
             ->orderByDesc('start_date')
             ->paginate(20)
@@ -43,7 +47,7 @@ class BudgetController extends Controller
 
     public function show(Request $request, int $budget): BudgetResource
     {
-        return new BudgetResource($request->user()->budgets()->with('categoryLimits')->findOrFail($budget));
+        return new BudgetResource($request->user()->budgets()->with(['categoryLimits', 'rollover'])->findOrFail($budget));
     }
 
     public function update(BudgetRequest $request, int $budget, SaveBudget $save): BudgetResource

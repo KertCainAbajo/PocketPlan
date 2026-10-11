@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $next_due_on
  * @property int $occurrences_generated
  * @property bool $is_active
+ * @property bool $is_allowance
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -42,6 +43,7 @@ class RecurringIncome extends Model
         'start_date',
         'end_date',
         'is_active',
+        'is_allowance',
     ];
 
     /** @var array<string, mixed> */
@@ -63,6 +65,7 @@ class RecurringIncome extends Model
             'next_due_on' => 'date',
             'occurrences_generated' => 'integer',
             'is_active' => 'boolean',
+            'is_allowance' => 'boolean',
         ];
     }
 

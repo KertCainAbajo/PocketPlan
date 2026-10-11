@@ -36,6 +36,10 @@ class BudgetResource extends JsonResource
                 $this->resource->relationLoaded('categoryLimits'),
                 fn () => $summaries->categoryLimits($this->resource),
             ),
+            'savings_rollover' => $this->whenLoaded('rollover', fn () => $this->rollover ? [
+                'amount' => $this->rollover->amount,
+                'saved_on' => $this->rollover->saved_on->toDateString(),
+            ] : null),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
