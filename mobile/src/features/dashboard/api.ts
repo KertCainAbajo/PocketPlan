@@ -74,6 +74,7 @@ export interface TransactionCategory {
 
 export interface TransactionDetails {
   id: number;
+  account_id: number | null;
   amount: string;
   description: string;
   notes: string | null;
@@ -87,6 +88,7 @@ export interface TransactionDetails {
 }
 
 export interface TransactionInput {
+  account_id?: number;
   category_id: number;
   amount: string;
   description: string;
@@ -95,6 +97,44 @@ export interface TransactionInput {
   spent_on?: string;
   received_on?: string;
 }
+
+export interface Account {
+  id: number;
+  name: string;
+  type: 'cash' | 'bank' | 'wallet';
+  opening_balance: string;
+  balance: string;
+  is_default: boolean;
+}
+
+export const accountApi = {
+  async list(): Promise<Account[]> {
+    const { data } = await api.get<{ data: Account[] }>('/accounts');
+    return data.data;
+  },
+};
+
+export interface BudgetItem {
+  id: number;
+  name: string;
+  spending_limit: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'completed';
+  summary: { spent_total: string; remaining: string; percent_used: number; is_overspent: boolean };
+}
+
+export const budgetApi = {
+  async list(): Promise<BudgetItem[]> {
+    const { data } = await api.get<{ data: BudgetItem[] }>('/budgets', { params: { per_page: 50 } });
+    return data.data;
+  },
+  async create(input: { name: string; spending_limit: string; frequency: BudgetItem['frequency']; start_date: string }): Promise<BudgetItem> {
+    const { data } = await api.post<{ data: BudgetItem }>('/budgets', input);
+    return data.data;
+  },
+};
 
 export const activityApi = {
   async getPage(page: number, search: string): Promise<ActivityPage> {

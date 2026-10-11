@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { api, getErrorMessage } from '@/lib/api-client';
-import { transactionApi, type TransactionDetails } from '@/features/dashboard/api';
+import { accountApi, transactionApi, type TransactionDetails } from '@/features/dashboard/api';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -44,6 +44,8 @@ export default function TransactionDetailsScreen() {
     enabled: Number.isInteger(id) && id > 0,
   });
   const detail = transaction.data;
+  const accounts = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list });
+  const accountName = accounts.data?.find((account) => account.id === detail?.account_id)?.name ?? 'Account';
   const budget = useQuery({
     queryKey: ['budget', detail?.budget_id],
     queryFn: async () => {
@@ -90,6 +92,7 @@ export default function TransactionDetailsScreen() {
         ) : detail ? (
           <TransactionContent
             detail={detail}
+            accountName={accountName}
             type={type}
             currency={user?.currency ?? 'USD'}
             userName={user?.name ?? 'You'}
@@ -108,6 +111,7 @@ export default function TransactionDetailsScreen() {
 
 function TransactionContent({
   detail,
+  accountName,
   type,
   currency,
   userName,
@@ -119,6 +123,7 @@ function TransactionContent({
   onDelete,
 }: {
   detail: TransactionDetails;
+  accountName: string;
   type: 'expense' | 'income';
   currency: string;
   userName: string;
@@ -149,7 +154,7 @@ function TransactionContent({
       <View className="mt-2.5 rounded-[18px] bg-card px-3.5 py-2">
         <DetailLine label="Category" value={detail.category.name} />
         <DetailLine label="Date" value={formattedDate} />
-        <DetailLine label="Account" value="Everyday account" />
+        <DetailLine label="Account" value={accountName} />
         {expense && <DetailLine label="Payment method" value={readable(detail.payment_method)} />}
         <DetailLine label="Added by" value={`${userName} · ${detail.recurring_income_id ? 'Recurring' : 'Manually'}`} />
       </View>

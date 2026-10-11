@@ -51,6 +51,12 @@ function RootNavigator() {
     return () => setUnauthorizedHandler(null);
   }, [bootstrap, clearSession]);
 
+  // A new account must never see cached screens or balances from the previous
+  // session after logout, including data still inside its stale-time window.
+  useEffect(() => {
+    if (status === 'signedOut') queryClient.clear();
+  }, [status]);
+
   useEffect(() => {
     if (status !== 'loading') SplashScreen.hide();
   }, [status]);

@@ -197,7 +197,7 @@ export default function ActivityScreen() {
       <View className="flex-row border-t border-border bg-card px-1 pb-1 pt-2">
         <TabItem label="Home" icon={<House size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/')} />
         <TabItem label="Activity" active icon={<ArrowLeftRight size={16} color={colors.primary} />} onPress={() => undefined} />
-        <TabItem label="Budgets" icon={<ChartNoAxesColumn size={16} color={colors.textSecondary} />} onPress={() => Alert.alert('Budgets', 'Budget management is coming soon.')} />
+        <TabItem label="Budgets" icon={<ChartNoAxesColumn size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/budgets')} />
         <TabItem label="Goals" icon={<Flag size={16} color={colors.textSecondary} />} onPress={() => Alert.alert('Savings goals', 'Savings goals are coming soon.')} />
         <TabItem label="Profile" icon={<UserRound size={16} color={colors.textSecondary} />} onPress={() => Alert.alert('Profile', user?.email ?? 'Your profile')} />
       </View>

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -73,6 +73,7 @@ export default function HomeScreen() {
   const dashboard = useQuery({
     queryKey: ['dashboard'],
     queryFn: dashboardApi.get,
+    enabled: user?.is_onboarded ?? false,
   });
 
   const data = dashboard.data;
@@ -83,6 +84,8 @@ export default function HomeScreen() {
   const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(
     data?.today ? new Date(`${data.today}T12:00:00`) : new Date(),
   );
+
+  if (user && !user.is_onboarded) return <Redirect href="/onboarding" />;
 
   const openComingSoon = (feature: string) => Alert.alert(feature, `${feature} is coming soon.`);
   const openProfile = () =>
@@ -159,7 +162,7 @@ export default function HomeScreen() {
 
         <View className="mb-2 mt-5 flex-row items-center justify-between">
           <Text className="text-[16px] font-semibold text-primary">Your {monthLabel(data?.today)} plan</Text>
-          <Pressable onPress={() => openComingSoon('Budgets')} className="flex-row items-center gap-0.5 py-1">
+          <Pressable onPress={() => router.navigate('/budgets')} className="flex-row items-center gap-0.5 py-1">
             <Text className="text-[11px] font-semibold text-primary">View budgets</Text>
             <ChevronRight size={14} color={colors.primary} />
           </Pressable>
@@ -184,7 +187,7 @@ export default function HomeScreen() {
             </Text>
           </View>
         ) : (
-          <Pressable onPress={() => openComingSoon('Create a budget')} className="rounded-[20px] bg-card p-4 active:opacity-80">
+          <Pressable onPress={() => router.navigate('/budgets')} className="rounded-[20px] bg-card p-4 active:opacity-80">
             <Text className="text-base font-semibold text-primary">No active plan yet</Text>
             <Text className="mt-1 text-xs leading-5 text-muted">Create a budget to set a spending limit for this period.</Text>
           </Pressable>

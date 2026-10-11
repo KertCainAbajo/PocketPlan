@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
-import { dashboardApi, transactionApi, type TransactionDetails, type TransactionInput } from '@/features/dashboard/api';
+import { accountApi, dashboardApi, transactionApi, type TransactionDetails, type TransactionInput } from '@/features/dashboard/api';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -100,13 +100,18 @@ function TransactionFields({
   const [paymentMethod, setPaymentMethod] = useState<(typeof paymentMethods)[number]>(
     paymentMethods.find((method) => method === initial?.payment_method) ?? 'cash',
   );
+  const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const categories = useQuery({ queryKey: ['categories', type], queryFn: () => transactionApi.categories(type) });
   const dashboard = useQuery({ queryKey: ['dashboard'], queryFn: dashboardApi.get });
+  const accounts = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list });
+  const selectedAccountId = accountId ?? accounts.data?.find((account) => account.is_default)?.id ?? accounts.data?.[0]?.id ?? null;
+  const selectedAccount = accounts.data?.find((account) => account.id === selectedAccountId);
   const selectedCategoryId = categoryId ?? categories.data?.[0]?.id ?? null;
   const selectedCategory = categories.data?.find((category) => category.id === selectedCategoryId);
   const budgetLimit = dashboard.data?.budget?.category_limits.find((limit) => limit.category_id === selectedCategoryId);
@@ -123,7 +128,9 @@ function TransactionFields({
   const save = useMutation({
     mutationFn: () => {
       if (!selectedCategoryId) throw new Error('Choose a category to continue.');
+      if (!selectedAccountId) throw new Error('Choose an account to continue.');
       const input: TransactionInput = {
+        account_id: selectedAccountId,
         category_id: selectedCategoryId,
         amount: amount.trim(),
         description: description.trim(),
@@ -137,6 +144,7 @@ function TransactionFields({
         queryClient.invalidateQueries({ queryKey: ['activity'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
         queryClient.invalidateQueries({ queryKey: ['budget'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['transaction', type, transaction.id] }),
       ]);
       if (id) router.back();
@@ -210,14 +218,19 @@ function TransactionFields({
           </View>
         )}
 
-        {type === 'expense' && (
-          <Field label="From account">
-            <View className="h-10 flex-row items-center justify-between rounded-xl border border-border bg-white px-3">
-              <Text className="text-[10px] text-ink">Everyday account{dashboard.data ? ` · ${formatMoney(dashboard.data.available_balance, currency)}` : ''}</Text>
-              <ChevronDown size={14} color={colors.primary} />
-            </View>
-          </Field>
-        )}
+        <Field label={type === 'expense' ? 'From account' : 'To account'}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Choose account" onPress={() => setShowAccounts((shown) => !shown)} className="h-10 flex-row items-center justify-between rounded-xl border border-border bg-white px-3">
+            <Text numberOfLines={1} className="flex-1 text-[10px] text-ink">{accounts.isPending ? 'Loading accounts…' : selectedAccount ? `${selectedAccount.name} · ${formatMoney(selectedAccount.balance, currency)}` : 'Choose an account'}</Text>
+            <ChevronDown size={14} color={colors.primary} />
+          </Pressable>
+          {showAccounts && accounts.data && <View className="mt-1 rounded-xl border border-border bg-white p-1">
+            {accounts.data.map((account) => <Pressable key={account.id} accessibilityRole="button" accessibilityState={{ selected: account.id === selectedAccountId }} onPress={() => { setAccountId(account.id); setShowAccounts(false); }} className={`rounded-lg px-3 py-2.5 ${account.id === selectedAccountId ? 'bg-accent-light' : ''}`}>
+              <Text className="text-[11px] font-medium text-primary">{account.name}</Text>
+              <Text className="mt-0.5 text-[9px] text-muted">{formatMoney(account.balance, currency)}</Text>
+            </Pressable>)}
+          </View>}
+          {accounts.isError && <Pressable onPress={() => void accounts.refetch()} className="mt-1.5 self-start"><Text className="text-[9px] font-medium text-error">Couldn’t load accounts. Tap to retry.</Text></Pressable>}
+        </Field>
 
         <Field label="Note · Optional">
           <TextInput value={notes} onChangeText={setNotes} placeholder="Add a note" placeholderTextColor={colors.textSecondary} multiline maxLength={1000} textAlignVertical="top" className="min-h-10 rounded-xl border border-border bg-white px-3 py-2.5 text-[10px] text-ink" />
@@ -238,7 +251,7 @@ function TransactionFields({
         {categories.isError && <View className="mt-2"><FormBanner message={getErrorMessage(categories.error)} /></View>}
         {save.isError && <View className="mt-2"><FormBanner message={getErrorMessage(save.error)} /></View>}
 
-        <Pressable disabled={save.isPending || categories.isPending || !categories.data?.length} onPress={submit} className="mt-3 h-11 flex-row items-center justify-center rounded-xl bg-primary active:opacity-80">
+        <Pressable disabled={save.isPending || categories.isPending || accounts.isPending || !categories.data?.length || !selectedAccountId} onPress={submit} className="mt-3 h-11 flex-row items-center justify-center rounded-xl bg-primary active:opacity-80">
           <Text className="text-[10px] font-semibold text-white">{save.isPending ? 'Saving…' : `Save ${type} · ${formatMoney(amount || 0, currency)}`}</Text>
         </Pressable>
       </View>
