@@ -23,10 +23,11 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Polygon } from 'react-native-svg';
 
+import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { FormBanner } from '@/components/ui/form-banner';
@@ -302,11 +303,11 @@ function GoalCard({ goal, currency, onOpen, onContribute }: { goal: SavingsGoal;
   const monthPlan = remaining / (goal.target_date ? monthsUntil(goal.target_date) : 12);
 
   function showActions() {
-    Alert.alert(goal.name, 'Choose an action for this savings goal.', [
+    showAlert(goal.name, 'Choose an action for this savings goal.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'View details', onPress: onOpen },
       { text: 'Edit goal', onPress: () => router.push({ pathname: '/savings-goal-form', params: { goalId: String(goal.id) } }) },
-    ]);
+    ], { icon: Flag });
   }
 
   return (

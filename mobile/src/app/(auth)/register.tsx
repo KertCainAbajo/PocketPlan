@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { Link, router } from 'expo-router';
-import { CheckCircle2, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react-native';
+import { ArrowRight, BadgeCheck, CheckCircle2, LockKeyhole, Mail, ShieldCheck, UserRound, Wallet } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
@@ -19,6 +19,9 @@ import { useGoogleSignIn } from '@/features/auth/use-google-sign-in';
 import { applyServerErrors } from '@/lib/form-errors';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
+
+/** Soft, navy-tinted elevation for the form card. */
+const cardShadow = { shadowColor: colors.primary, shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 };
 
 const FIELDS = ['name', 'email', 'password', 'passwordConfirmation', 'acceptedTerms'] as const;
 
@@ -48,7 +51,14 @@ export default function RegisterScreen() {
   });
 
   return (
-    <AuthLayout title="Create your account" subtitle="Plan your allowance and know what you can spend, in under a minute.">
+    <AuthLayout
+      title="Create your account"
+      subtitle="Plan your allowance and know what you can spend, in under a minute."
+      highlights={[
+        { icon: BadgeCheck, label: 'Free forever' },
+        { icon: Wallet, label: 'No bank login' },
+        { icon: ShieldCheck, label: 'Private' },
+      ]}>
       <GoogleButton label="Sign up with Google" onPress={google.start} loading={google.isPending} />
       <Text className="mt-2.5 text-center text-xs leading-[18px] text-muted">
         By continuing with Google you agree to the{' '}
@@ -70,108 +80,108 @@ export default function RegisterScreen() {
 
       <FormBanner message={formError} />
 
-      <FormField
-        control={control}
-        name="name"
-        label="Full name"
-        icon={UserRound}
-        placeholder="Juan Dela Cruz"
-        autoComplete="name"
-        textContentType="name"
-        autoCapitalize="words"
-        returnKeyType="next"
-        submitBehavior="submit"
-        onSubmitEditing={() => setFocus('email')}
-      />
-      <FormField
-        control={control}
-        name="email"
-        label="Email"
-        icon={Mail}
-        placeholder="you@example.com"
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="email"
-        keyboardType="email-address"
-        textContentType="emailAddress"
-        returnKeyType="next"
-        submitBehavior="submit"
-        onSubmitEditing={() => setFocus('password')}
-      />
-      <FormField
-        control={control}
-        name="password"
-        label="Password"
-        icon={LockKeyhole}
-        placeholder="Create a password"
-        password
-        autoComplete="new-password"
-        textContentType="newPassword"
-        returnKeyType="next"
-        submitBehavior="submit"
-        onSubmitEditing={() => setFocus('passwordConfirmation')}>
-        <PasswordStrength password={password} />
-      </FormField>
-      <FormField
-        control={control}
-        name="passwordConfirmation"
-        label="Confirm password"
-        icon={LockKeyhole}
-        placeholder="Type your password again"
-        password
-        autoComplete="new-password"
-        textContentType="newPassword"
-        returnKeyType="go"
-        onSubmitEditing={onSubmit}>
-        {passwordsMatch && (
-          <View className="mt-1.5 flex-row items-center gap-1.5">
-            <CheckCircle2 size={14} color={colors.positiveText} />
-            <Text className="text-sm font-medium text-positive-text">Passwords match</Text>
-          </View>
-        )}
-      </FormField>
+      <View style={cardShadow} className="rounded-3xl bg-card px-4 pb-1 pt-5">
+        <FormField
+          control={control}
+          name="name"
+          label="Full name"
+          icon={UserRound}
+          placeholder="Juan Dela Cruz"
+          autoComplete="name"
+          textContentType="name"
+          autoCapitalize="words"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => setFocus('email')}
+        />
+        <FormField
+          control={control}
+          name="email"
+          label="Email"
+          icon={Mail}
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => setFocus('password')}
+        />
+        <FormField
+          control={control}
+          name="password"
+          label="Password"
+          icon={LockKeyhole}
+          placeholder="Create a password"
+          password
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => setFocus('passwordConfirmation')}>
+          <PasswordStrength password={password} />
+        </FormField>
+        <FormField
+          control={control}
+          name="passwordConfirmation"
+          label="Confirm password"
+          icon={LockKeyhole}
+          placeholder="Type your password again"
+          password
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="go"
+          onSubmitEditing={onSubmit}>
+          {passwordsMatch && (
+            <View className="mt-1.5 flex-row items-center gap-1.5">
+              <CheckCircle2 size={14} color={colors.positiveText} />
+              <Text className="text-sm font-medium text-positive-text">Passwords match</Text>
+            </View>
+          )}
+        </FormField>
 
-      <Controller
-        control={control}
-        name="acceptedTerms"
-        render={({ field: { value, onChange }, fieldState: { error } }) => (
-          <Checkbox
-            checked={value}
-            onChange={onChange}
-            error={error?.message}
-            accessibilityLabel="I agree to the Terms of Service and Privacy Policy">
-            <Text className="text-sm leading-5 text-muted">
-              I agree to the{' '}
-              <Text className="font-semibold text-accent" onPress={() => router.push('/legal')}>
-                Terms of Service
-              </Text>{' '}
-              and{' '}
-              <Text className="font-semibold text-accent" onPress={() => router.push('/legal')}>
-                Privacy Policy
+        <Controller
+          control={control}
+          name="acceptedTerms"
+          render={({ field: { value, onChange }, fieldState: { error } }) => (
+            <Checkbox
+              checked={value}
+              onChange={onChange}
+              error={error?.message}
+              accessibilityLabel="I agree to the Terms of Service and Privacy Policy">
+              <Text className="text-sm leading-5 text-muted">
+                I agree to the{' '}
+                <Text className="font-semibold text-accent" onPress={() => router.push('/legal')}>
+                  Terms of Service
+                </Text>{' '}
+                and{' '}
+                <Text className="font-semibold text-accent" onPress={() => router.push('/legal')}>
+                  Privacy Policy
+                </Text>
+                .
               </Text>
-              .
-            </Text>
-          </Checkbox>
-        )}
-      />
+            </Checkbox>
+          )}
+        />
+      </View>
 
-      <Button label="Create account" loading={register.isPending} onPress={onSubmit} className="mt-1" />
+      <Button label="Create account" icon={ArrowRight} loading={register.isPending} onPress={onSubmit} className="mt-5" />
 
       <View className="mt-5 flex-row items-center justify-center gap-1.5">
         <ShieldCheck size={14} color={colors.textSecondary} />
         <Text className="text-xs text-muted">Your data stays private. It is never sold or shared.</Text>
       </View>
 
-      <View className="mt-6 flex-row items-center gap-3">
-        <View className="h-px flex-1 bg-border" />
-        <Text className="text-xs text-muted">Already a member?</Text>
-        <View className="h-px flex-1 bg-border" />
+      <View className="mt-6 flex-row items-center justify-center rounded-2xl bg-accent-light px-4 py-3.5">
+        <Text className="text-[14px] text-primary/75">Already have an account? </Text>
+        <Link href="/login" replace asChild>
+          <Text accessibilityRole="link" className="text-[14px] font-bold text-primary">
+            Sign in
+          </Text>
+        </Link>
       </View>
-      <Link href="/login" replace asChild>
-        <Text accessibilityRole="link" className="mt-3 self-center p-2 text-[15px] font-bold text-accent">
-          Sign in instead
-        </Text>
-      </Link>
     </AuthLayout>
   );
 }

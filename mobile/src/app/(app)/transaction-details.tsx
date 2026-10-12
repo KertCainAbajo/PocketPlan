@@ -1,9 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, BriefcaseBusiness, MoreHorizontal, ShoppingBasket } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  BriefcaseBusiness,
+  MoreHorizontal,
+  ShoppingBasket,
+  Trash2,
+} from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { showAlert } from '@/components/app-alert';
 import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { api, getErrorMessage } from '@/lib/api-client';
@@ -67,10 +74,10 @@ export default function TransactionDetailsScreen() {
     },
   });
 
-  const askToDelete = () => Alert.alert('Delete transaction?', 'This transaction will be permanently removed.', [
+  const askToDelete = () => showAlert('Delete transaction?', 'This transaction will be permanently removed.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Delete', style: 'destructive', onPress: () => remove.mutate() },
-  ]);
+  ], { icon: Trash2 });
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
@@ -80,7 +87,7 @@ export default function TransactionDetailsScreen() {
             <ArrowLeft size={18} color={colors.primary} />
           </Pressable>
           <Text className="flex-1 text-[17px] font-bold text-primary">Transaction details</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Transaction options" onPress={() => Alert.alert('Transaction options', 'Choose Edit or Delete below.')} className="h-9 w-9 items-center justify-center">
+          <Pressable accessibilityRole="button" accessibilityLabel="Transaction options" onPress={() => showAlert('Transaction options', 'Choose Edit or Delete below.')} className="h-9 w-9 items-center justify-center">
             <MoreHorizontal size={20} color={colors.primary} />
           </Pressable>
         </View>

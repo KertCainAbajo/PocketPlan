@@ -25,9 +25,10 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Share, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Share, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { cardShadow, IconTile } from '@/components/settings-ui';
@@ -84,7 +85,7 @@ export default function ProfileScreen() {
       if (value) {
         const [hardware, enrolled] = await Promise.all([LocalAuthentication.hasHardwareAsync(), LocalAuthentication.isEnrolledAsync()]);
         if (!hardware || !enrolled) {
-          Alert.alert('Biometrics unavailable', 'Set up Face ID or a fingerprint on this device before enabling biometric unlock.');
+          showAlert('Biometrics unavailable', 'Set up Face ID or a fingerprint on this device before enabling biometric unlock.', undefined, { tone: 'warning', icon: Fingerprint });
           return;
         }
         const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm biometric unlock', cancelLabel: 'Cancel' });
@@ -93,7 +94,7 @@ export default function ProfileScreen() {
       await SecureStore.setItemAsync(BIOMETRIC_KEY, String(value));
       setBiometricEnabled(value);
     } catch (error) {
-      Alert.alert('Could not update setting', getErrorMessage(error));
+      showAlert('Could not update setting', getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -108,9 +109,9 @@ export default function ProfileScreen() {
       const fileUri = `${FileSystem.cacheDirectory}pocketplan-transactions.csv`;
       await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
       if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export your PocketPlan data' });
-      else Alert.alert('Export ready', 'The CSV file was saved to temporary storage, but sharing is unavailable on this device.');
+      else showAlert('Export ready', 'The CSV file was saved to temporary storage, but sharing is unavailable on this device.', undefined, { tone: 'success', icon: Download });
     } catch (error) {
-      Alert.alert('Could not export data', getErrorMessage(error));
+      showAlert('Could not export data', getErrorMessage(error));
     } finally {
       setExporting(false);
     }
@@ -121,14 +122,14 @@ export default function ProfileScreen() {
   }
 
   function contactSupport() {
-    void Linking.openURL('mailto:support@pocketplan.app?subject=PocketPlan%20support').catch(() => Alert.alert('Email unavailable', 'Add an email app to contact support.'));
+    void Linking.openURL('mailto:support@pocketplan.app?subject=PocketPlan%20support').catch(() => showAlert('Email unavailable', 'Add an email app to contact support.', undefined, { tone: 'warning', icon: Mail }));
   }
 
   function confirmSignOut() {
-    Alert.alert('Sign out?', 'You can sign back in anytime.', [
+    showAlert('Sign out?', 'You can sign back in anytime.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
-    ]);
+    ], { icon: LogOut });
   }
 
   return (

@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { Link, router } from 'expo-router';
-import { Fingerprint, LockKeyhole, Mail, ShieldCheck } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
+import { ArrowRight, Fingerprint, LockKeyhole, Mail, ShieldCheck, type LucideIcon } from 'lucide-react-native';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
@@ -17,6 +17,9 @@ import { useGoogleSignIn } from '@/features/auth/use-google-sign-in';
 import { applyServerErrors } from '@/lib/form-errors';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
+
+/** Soft, navy-tinted elevation for the form card. */
+const cardShadow = { shadowColor: colors.primary, shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 };
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -71,66 +74,66 @@ export default function LoginScreen() {
 
       <FormBanner message={formError} />
 
-      <FormField
-        control={control}
-        name="email"
-        label="Email"
-        icon={Mail}
-        placeholder="you@example.com"
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="email"
-        keyboardType="email-address"
-        textContentType="emailAddress"
-        returnKeyType="next"
-        submitBehavior="submit"
-        onSubmitEditing={() => setFocus('password')}
-      />
-      <FormField
-        control={control}
-        name="password"
-        label="Password"
-        icon={LockKeyhole}
-        placeholder="Your password"
-        password
-        autoComplete="password"
-        textContentType="password"
-        returnKeyType="go"
-        onSubmitEditing={onSubmit}
-      />
-
-      <Link href="/forgot-password" asChild>
-        <Text accessibilityRole="link" className="-mt-1 mb-6 self-end py-1 text-sm font-semibold text-accent">
-          Forgot password?
-        </Text>
-      </Link>
-
-      <Button label="Sign in" loading={login.isPending} disabled={busy} onPress={onSubmit} />
-
-      <View className="mt-5 flex-row justify-center gap-2">
-        <TrustBadge icon={<ShieldCheck size={13} color={colors.positiveText} />} label="Secure sign-in" />
-        <TrustBadge icon={<Fingerprint size={13} color={colors.positiveText} />} label="Private by design" />
+      <View style={cardShadow} className="rounded-3xl bg-card px-4 pb-2 pt-5">
+        <FormField
+          control={control}
+          name="email"
+          label="Email"
+          icon={Mail}
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => setFocus('password')}
+        />
+        <FormField
+          control={control}
+          name="password"
+          label="Password"
+          icon={LockKeyhole}
+          placeholder="Your password"
+          password
+          autoComplete="password"
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={onSubmit}
+        />
+        <Link href="/forgot-password" asChild>
+          <Text accessibilityRole="link" className="-mt-1 mb-2 self-end py-1 text-sm font-semibold text-accent">
+            Forgot password?
+          </Text>
+        </Link>
       </View>
 
-      <View className="mt-7 flex-row items-center gap-3">
-        <View className="h-px flex-1 bg-border" />
-        <Text className="text-xs text-muted">New to PocketPlan?</Text>
-        <View className="h-px flex-1 bg-border" />
+      <Button label="Sign in" icon={ArrowRight} loading={login.isPending} disabled={busy} onPress={onSubmit} className="mt-5" />
+
+      <View className="mt-5 flex-row items-center justify-center gap-5">
+        <TrustItem Icon={ShieldCheck} label="Secure sign-in" />
+        <View className="h-3 w-px bg-border" />
+        <TrustItem Icon={Fingerprint} label="Private by design" />
       </View>
-      <Link href="/register" replace asChild>
-        <Text accessibilityRole="link" className="mt-3 self-center p-2 text-[15px] font-bold text-accent">
-          Create a free account
-        </Text>
-      </Link>
+
+      <View className="mt-7 flex-row items-center justify-center rounded-2xl bg-accent-light px-4 py-3.5">
+        <Text className="text-[14px] text-primary/75">Don’t have an account? </Text>
+        <Link href="/register" replace asChild>
+          <Text accessibilityRole="link" className="text-[14px] font-bold text-primary">
+            Create account
+          </Text>
+        </Link>
+      </View>
     </AuthLayout>
   );
 }
 
-function TrustBadge({ icon, label }: { icon: ReactNode; label: string }) {
+function TrustItem({ Icon, label }: { Icon: LucideIcon; label: string }) {
   return (
-    <View className="flex-row items-center gap-1 rounded-full bg-positive px-2.5 py-1">
-      {icon}
-      <Text className="text-[11px] font-semibold text-positive-text">{label}</Text>
+    <View className="flex-row items-center gap-1.5">
+      <Icon size={14} color={colors.positiveText} strokeWidth={2.2} />
+      <Text className="text-[12px] font-semibold text-muted">{label}</Text>
     </View>
   );
 }

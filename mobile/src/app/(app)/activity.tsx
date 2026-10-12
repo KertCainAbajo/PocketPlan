@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import {
   ArrowDownLeft,
   ArrowDownUp,
+  ArrowLeftRight,
   ArrowUpRight,
   CalendarDays,
   Check,
@@ -16,9 +17,10 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View, type ViewStyle } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { CategoryIcon } from '@/components/category-icon';
@@ -125,11 +127,11 @@ export default function ActivityScreen() {
   const accountNames = new Map((accounts.data ?? []).map((account) => [account.id, account.name]));
   const filtering = search.trim().length > 0 || filter !== 'All';
 
-  const addTransaction = () => Alert.alert('Add a transaction', 'Choose a transaction type.', [
+  const addTransaction = () => showAlert('Add a transaction', 'Choose a transaction type.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Expense', onPress: () => router.push({ pathname: '/transaction-form', params: { type: 'expense' } }) },
     { text: 'Income', onPress: () => router.push({ pathname: '/transaction-form', params: { type: 'income' } }) },
-  ]);
+  ], { icon: ArrowLeftRight });
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>

@@ -33,9 +33,10 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { showAlert } from '@/components/app-alert';
 import {
   cardShadow,
   ErrorBanner,
@@ -313,14 +314,14 @@ function AccountItem({ account, currency, editing, onToggle, onChanged }: { acco
   const remove = useMutation({
     mutationFn: () => accountApi.remove(account.id),
     onSuccess: onChanged,
-    onError: (failure) => Alert.alert('Could not delete account', getErrorMessage(failure)),
+    onError: (failure) => showAlert('Could not delete account', getErrorMessage(failure)),
   });
 
   function confirmDelete() {
-    Alert.alert(`Delete ${account.name}?`, 'Its transactions will move to your default account. This cannot be undone.', [
+    showAlert(`Delete ${account.name}?`, 'Its transactions will move to your default account. This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => remove.mutate() },
-    ]);
+    ], { icon: Trash2 });
   }
 
   return (
@@ -422,7 +423,7 @@ function CurrencySection() {
 
   function choose(code: string) {
     if (!user || code === current || pending) return;
-    Alert.alert(`Show amounts in ${code}?`, 'Only the symbol and format change. Your amounts are not converted.', [
+    showAlert(`Show amounts in ${code}?`, 'Only the symbol and format change. Your amounts are not converted.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Change',
@@ -748,22 +749,22 @@ function SecuritySection() {
   // The forgot-password screen is only reachable signed out, so email the link from here.
   const resetLink = useMutation({
     mutationFn: () => authApi.forgotPassword({ email: user?.email ?? '' }),
-    onSuccess: (message) => Alert.alert('Check your email', message || `We sent a reset link to ${user?.email}.`),
-    onError: (failure) => Alert.alert('Could not send link', getErrorMessage(failure)),
+    onSuccess: (message) => showAlert('Check your email', message || `We sent a reset link to ${user?.email}.`, undefined, { tone: 'success', icon: Mail }),
+    onError: (failure) => showAlert('Could not send link', getErrorMessage(failure)),
   });
 
   function sendResetLink() {
-    Alert.alert('Reset your password?', `We'll email a reset link to ${user?.email}.`, [
+    showAlert('Reset your password?', `We'll email a reset link to ${user?.email}.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Send link', onPress: () => resetLink.mutate() },
-    ]);
+    ], { icon: LockKeyhole });
   }
 
   function confirmDelete() {
-    Alert.alert('Delete your account?', 'All of your transactions, budgets, goals and accounts will be permanently deleted. This cannot be undone.', [
+    showAlert('Delete your account?', 'All of your transactions, budgets, goals and accounts will be permanently deleted. This cannot be undone.', [
       { text: 'Keep my account', style: 'cancel' },
       { text: 'Delete forever', style: 'destructive', onPress: () => deleteAccount.mutate() },
-    ]);
+    ], { icon: Trash2 });
   }
 
   return (
@@ -821,10 +822,10 @@ function SecuritySection() {
             title={revoke.isPending ? 'Signing out…' : 'Sign out all other devices'}
             Icon={ShieldAlert}
             disabled={revoke.isPending}
-            onPress={() => Alert.alert('Sign out other devices?', 'Other phones and tablets will need to sign in again.', [
+            onPress={() => showAlert('Sign out other devices?', 'Other phones and tablets will need to sign in again.', [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Sign out devices', style: 'destructive', onPress: () => revoke.mutate() },
-            ])}
+            ], { icon: Smartphone })}
           />
         </View>
         {devicesMessage ? <Text className="mt-3 text-center text-[12px] font-medium text-muted">{devicesMessage}</Text> : null}
@@ -956,7 +957,7 @@ function HelpSection() {
 
       <SectionLabel>Still need help?</SectionLabel>
       <SettingsCard className="px-4 py-1">
-        <LinkRow Icon={Mail} color="#0EA5E9" title="Email support" detail="support@pocketplan.app" onPress={() => void Linking.openURL('mailto:support@pocketplan.app?subject=PocketPlan%20support').catch(() => Alert.alert('Email unavailable', 'Add an email app to contact support.'))} />
+        <LinkRow Icon={Mail} color="#0EA5E9" title="Email support" detail="support@pocketplan.app" onPress={() => void Linking.openURL('mailto:support@pocketplan.app?subject=PocketPlan%20support').catch(() => showAlert('Email unavailable', 'Add an email app to contact support.', undefined, { tone: 'warning', icon: Mail }))} />
         <LinkRow Icon={FileText} color="#687086" title="Privacy & terms" detail="How PocketPlan handles your data" onPress={() => router.push('/legal')} last />
       </SettingsCard>
     </>

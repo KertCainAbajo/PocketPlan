@@ -12,6 +12,7 @@ import { AppState, Pressable, Text, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AlertHost } from '@/components/app-alert';
 import { OfflineNotice } from '@/components/offline-notice';
 import { setUnauthorizedHandler } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
@@ -131,6 +132,7 @@ function RootNavigator() {
         <Stack.Screen name="legal" options={{ presentation: 'modal' }} />
       </Stack>
       {status === 'offline' && <OfflineNotice onRetry={bootstrap} />}
+      <AlertHost />
       {/* Keep Expo Router's navigator mounted while the biometric lock covers it. */}
       {signedIn && !unlocked && <View className="absolute inset-0 z-50 items-center justify-center bg-background px-8">
         <View className="h-16 w-16 items-center justify-center rounded-2xl bg-accent-light"><Fingerprint size={30} color={colors.primary} /></View>

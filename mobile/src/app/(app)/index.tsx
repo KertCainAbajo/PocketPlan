@@ -17,16 +17,18 @@ import {
   PieChart,
   Plus,
   Receipt,
+  Sparkles,
   Sprout,
   TriangleAlert,
   Wallet,
   XCircle,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Alert, Pressable, RefreshControl, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
+import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { CategoryIcon } from '@/components/category-icon';
@@ -119,7 +121,7 @@ export default function HomeScreen() {
   const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(
     data?.today ? day(data.today) : new Date(),
   );
-  const openComingSoon = (feature: string) => Alert.alert(feature, `${feature} is coming soon.`);
+  const openComingSoon = (feature: string) => showAlert(feature, 'We’re still building this. It will be ready soon.', undefined, { icon: Sparkles });
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>

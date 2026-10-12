@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, Text } from 'react-native';
 
 import { colors } from '@/theme/colors';
@@ -12,6 +13,8 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Trailing icon, e.g. an arrow on a "continue" button. */
+  icon?: LucideIcon;
 }
 
 const containerByVariant: Record<Variant, string> = {
@@ -32,7 +35,7 @@ const textByVariant: Record<Variant, string> = {
   'outline-inverse': 'text-white',
 };
 
-export function Button({ label, onPress, variant = 'primary', loading = false, disabled = false, className = '' }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', loading = false, disabled = false, className = '', icon: Icon }: ButtonProps) {
   const inactive = disabled || loading;
 
   return (
@@ -46,7 +49,10 @@ export function Button({ label, onPress, variant = 'primary', loading = false, d
       {loading ? (
         <ActivityIndicator color={['primary', 'danger', 'outline-inverse'].includes(variant) ? colors.card : colors.primary} />
       ) : (
-        <Text className={`text-base font-semibold ${textByVariant[variant]}`}>{label}</Text>
+        <>
+          <Text className={`text-base font-semibold ${textByVariant[variant]}`}>{label}</Text>
+          {Icon ? <Icon size={18} strokeWidth={2.4} color={['primary', 'danger', 'outline-inverse'].includes(variant) ? colors.card : colors.primary} style={{ marginLeft: 8 }} /> : null}
+        </>
       )}
     </Pressable>
   );

@@ -1,11 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarDays, Check, ChevronDown, CreditCard, FileText, Paperclip, Tag, WalletCards } from 'lucide-react-native';
+import {
+  ArrowDownLeft,
+  ArrowLeft,
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  Paperclip,
+  Tag,
+  WalletCards,
+} from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { showAlert } from '@/components/app-alert';
 import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
@@ -268,7 +281,7 @@ function TransactionFields({
           <TextInput value={notes} onChangeText={setNotes} placeholder="Add a note or reminder" placeholderTextColor={colors.textSecondary} multiline maxLength={1000} textAlignVertical="top" className="min-h-12 rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3.5 py-3 text-[11px] text-ink" />
         </Field>
 
-        <Pressable accessibilityRole="button" onPress={() => Alert.alert('Receipt attachment', 'Receipt uploads are not available yet.')} className="mt-3 h-12 flex-row items-center gap-2.5 rounded-[14px] border border-dashed border-[#D8DEEA] bg-[#FAFBFD] px-3.5">
+        <Pressable accessibilityRole="button" onPress={() => showAlert('Receipt attachment', 'Receipt uploads are coming soon.', undefined, { icon: Paperclip })} className="mt-3 h-12 flex-row items-center gap-2.5 rounded-[14px] border border-dashed border-[#D8DEEA] bg-[#FAFBFD] px-3.5">
           <View className="h-7 w-7 items-center justify-center rounded-lg bg-accent-light"><Paperclip size={14} color={colors.primary} /></View><View className="flex-1"><Text className="text-[10px] font-semibold text-primary">Attach a receipt</Text><Text className="mt-0.5 text-[9px] text-muted">Receipt uploads coming soon</Text></View><ChevronDown size={14} color={colors.textSecondary} />
         </Pressable>
       </View>
