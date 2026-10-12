@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
 import { FormBanner } from '@/components/ui/form-banner';
+import { currencySymbol } from '@/features/budgets/period';
 import { accountApi, savingsGoalsApi, type Account } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
@@ -114,7 +115,7 @@ export default function SavingsGoalContributionScreen() {
 
           <View className="mt-3 rounded-[21px] border border-[#E8EBF7] bg-white p-4">
             <View className="flex-row items-center justify-between"><View><Text className="text-[10px] font-semibold text-primary">How much would you like to save?</Text><Text className="mt-0.5 text-[8px] text-muted">Choose an amount that feels comfortable.</Text></View><View className="h-8 w-8 items-center justify-center rounded-xl bg-accent-light"><Sparkles size={14} color={colors.primary} /></View></View>
-            <View className="mt-4 flex-row items-center border-b border-[#ECEEF4] pb-2"><Text className="mr-2 text-[20px] font-semibold text-muted">{currency}</Text><TextInput value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" className="min-w-0 flex-1 py-1 text-[31px] font-bold tracking-tight text-primary" placeholderTextColor="#A6AEC0" /></View>
+            <View className="mt-4 flex-row items-center border-b border-[#ECEEF4] pb-2"><Text className="mr-2 text-[28px] font-bold text-muted">{currencySymbol(currency)}</Text><TextInput accessibilityLabel="Contribution amount" value={amount} onChangeText={(value) => setAmount(value.replace(',', '.').replace(/[^\d.]/g, ''))} placeholder="0.00" keyboardType="decimal-pad" className="min-w-0 flex-1 py-1 text-[31px] font-bold tracking-tight text-primary" placeholderTextColor="#A6AEC0" /></View>
             <View className="mt-3 flex-row items-center justify-between"><Text className="text-[8px] text-muted">Available in {selectedAccount?.name ?? 'your account'}</Text><Text className="text-[9px] font-semibold text-primary">{money(selectedAccount?.balance ?? 0, currency)}</Text></View>
             <View className="mt-3 flex-row gap-2">{presets.map(({ percent, value }) => <Pressable key={percent} disabled={value <= 0} accessibilityRole="button" onPress={() => chooseAmount(value)} className={`min-h-8 flex-1 flex-row items-center justify-center gap-1 rounded-[9px] ${value > 0 ? 'bg-[#F2F4FF]' : 'bg-background'}`}><Text className={`text-[8px] font-semibold ${value > 0 ? 'text-primary' : 'text-muted'}`}>{percent}%</Text><Text className="text-[8px] text-muted">{money(value, currency)}</Text></Pressable>)}</View>
           </View>

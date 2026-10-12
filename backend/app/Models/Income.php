@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $description
  * @property string|null $notes
  * @property Carbon $received_on
+ * @property string|null $received_time optional time of day (HH:MM:SS)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -35,6 +36,7 @@ class Income extends Model
         'description',
         'notes',
         'received_on',
+        'received_time',
     ];
 
     /**

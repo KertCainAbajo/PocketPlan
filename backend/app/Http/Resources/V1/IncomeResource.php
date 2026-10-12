@@ -21,6 +21,7 @@ class IncomeResource extends JsonResource
             'description' => $this->description,
             'notes' => $this->notes,
             'received_on' => $this->received_on->toDateString(),
+            'received_time' => $this->received_time ? substr($this->received_time, 0, 5) : null,
             'recurring_income_id' => $this->recurring_income_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'created_at' => $this->created_at?->toIso8601String(),

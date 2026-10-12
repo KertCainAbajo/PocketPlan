@@ -52,7 +52,7 @@ import {
 } from '@/components/settings-ui';
 import { authApi } from '@/features/auth/api';
 import { PasswordStrength, PASSWORD_RULES } from '@/features/auth/password-strength';
-import { endDateFor, shortDate, toDateString } from '@/features/budgets/period';
+import { currencySymbol, endDateFor, shortDate, toDateString } from '@/features/budgets/period';
 import { accountApi, type Account } from '@/features/dashboard/api';
 import { profileApi, type NotificationPreferences } from '@/features/profile/api';
 import { budgetFrequencies, getBudgetFrequencyPreference, setBudgetFrequencyPreference, type BudgetFrequencyPreference } from '@/features/profile/budget-preferences';
@@ -357,6 +357,7 @@ function AccountItem({ account, currency, editing, onToggle, onChanged }: { acco
 
 /** Shared add/edit form. Without `account` it creates a new one. */
 function AccountForm({ account, submitLabel, onDone }: { account?: Account; submitLabel: string; onDone: () => void }) {
+  const currency = useAuthStore((state) => state.user?.currency) ?? 'PHP';
   const [name, setName] = useState(account?.name ?? '');
   const [type, setType] = useState<Account['type']>(account?.type ?? 'wallet');
   const [opening, setOpening] = useState(account ? Number(account.opening_balance).toFixed(2) : '');
@@ -395,9 +396,9 @@ function AccountForm({ account, submitLabel, onDone }: { account?: Account; subm
       </View>
       <Field
         label="Starting balance"
-        Icon={Banknote}
+        prefix={currencySymbol(currency)}
         value={opening}
-        onChangeText={setOpening}
+        onChangeText={(text) => setOpening(text.replace(',', '.').replace(/[^\d.]/g, ''))}
         placeholder="0.00"
         keyboardType="decimal-pad"
         error={validAmount ? undefined : 'Use numbers with up to 2 decimals.'}

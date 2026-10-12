@@ -33,6 +33,7 @@ class ExpenseRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:1000'],
             'payment_method' => ['nullable', Rule::enum(PaymentMethod::class)],
             'spent_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.$this->userToday()],
+            'spent_time' => ['nullable', 'date_format:H:i'],
         ];
     }
 

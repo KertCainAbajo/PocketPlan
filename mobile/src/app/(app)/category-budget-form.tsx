@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { FormBanner } from '@/components/ui/form-banner';
+import { currencySymbol } from '@/features/budgets/period';
 import { budgetApi, transactionApi } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
@@ -89,8 +90,11 @@ export default function CategoryBudgetFormScreen() {
           {showCategories && categories.data && <View className="mt-2 rounded-[14px] border border-border bg-background p-1.5">{categories.data.map((category) => { const existingLimit = existing.find((item) => item.category_id === category.id); return <Pressable key={category.id} accessibilityRole="button" onPress={() => { setCategoryId(category.id); setLimit(null); setShowCategories(false); }} className={`flex-row items-center justify-between rounded-[10px] px-3 py-3 ${category.id === categoryId ? 'bg-accent-light' : ''}`}><Text className="text-[11px] font-medium text-primary">{category.name}{existingLimit ? ` · ${formatMoney(Number(existingLimit.limit_amount))}` : ''}</Text>{category.id === categoryId && <Check size={14} color={colors.primary} />}</Pressable>; })}</View>}
           {categories.isError && <Pressable onPress={() => void categories.refetch()} className="mt-2"><Text className="text-[10px] text-error">Couldn’t load categories. Tap to retry.</Text></Pressable>}
 
-          <Text className="mb-2 mt-5 text-[11px] font-semibold text-ink">Amount for this category · {currency}</Text>
-          <TextInput accessibilityLabel="Amount for this category" value={limit} onChangeText={(value) => { setLimit(value.replace(',', '.')); setError(null); }} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSecondary} className="h-[54px] rounded-[14px] border border-border bg-background px-3.5 text-[19px] font-semibold text-primary" />
+          <Text className="mb-2 mt-5 text-[11px] font-semibold text-ink">Amount for this category</Text>
+          <View className="h-[54px] flex-row items-center rounded-[14px] border border-border bg-background px-3.5">
+            <Text className="mr-1.5 text-[19px] font-bold text-muted">{currencySymbol(currency)}</Text>
+            <TextInput accessibilityLabel="Amount for this category" value={limit} onChangeText={(value) => { setLimit(value.replace(',', '.').replace(/[^\d.]/g, '')); setError(null); }} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSecondary} className="flex-1 py-0 text-[19px] font-semibold text-primary" />
+          </View>
           <View className="mt-2 flex-row items-center justify-between">
             <Text className="text-[9px] text-muted">Spent here so far: {formatMoney(currentSpend)}</Text>
             {available > 0 && Number(limit || 0) !== available && <Pressable accessibilityRole="button" onPress={() => { setLimit(available.toFixed(2)); setError(null); }} className="rounded-full bg-accent-light px-2.5 py-1 active:opacity-70"><Text className="text-[9px] font-semibold text-primary">Use all {formatMoney(available)}</Text></Pressable>}

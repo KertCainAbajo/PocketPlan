@@ -30,6 +30,7 @@ class IncomeRequest extends FormRequest
             'description' => ['required', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'received_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.$this->userToday()],
+            'received_time' => ['nullable', 'date_format:H:i'],
         ];
     }
 

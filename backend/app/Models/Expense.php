@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $notes
  * @property PaymentMethod|null $payment_method
  * @property Carbon $spent_on calendar date in the user's timezone
+ * @property string|null $spent_time optional time of day (HH:MM:SS)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -36,6 +37,7 @@ class Expense extends Model
         'notes',
         'payment_method',
         'spent_on',
+        'spent_time',
     ];
 
     /**

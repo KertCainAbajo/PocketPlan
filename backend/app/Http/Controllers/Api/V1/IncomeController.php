@@ -34,6 +34,7 @@ class IncomeController extends Controller
 
         $incomes = $query->with('category')
             ->orderBy('received_on', $request->newestFirst() ? 'desc' : 'asc')
+            ->orderBy('received_time', $request->newestFirst() ? 'desc' : 'asc')
             ->orderBy('id', $request->newestFirst() ? 'desc' : 'asc')
             ->paginate($request->perPage())
             ->withQueryString();

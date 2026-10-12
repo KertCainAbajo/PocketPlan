@@ -35,6 +35,7 @@ class ExpenseController extends Controller
 
         $expenses = $query->with('category')
             ->orderBy('spent_on', $request->newestFirst() ? 'desc' : 'asc')
+            ->orderBy('spent_time', $request->newestFirst() ? 'desc' : 'asc')
             ->orderBy('id', $request->newestFirst() ? 'desc' : 'asc')
             ->paginate($request->perPage())
             ->withQueryString();

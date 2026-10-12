@@ -22,6 +22,7 @@ class ExpenseResource extends JsonResource
             'notes' => $this->notes,
             'payment_method' => $this->payment_method?->value,
             'spent_on' => $this->spent_on->toDateString(),
+            'spent_time' => $this->spent_time ? substr($this->spent_time, 0, 5) : null,
             'budget_id' => $this->budget_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'created_at' => $this->created_at?->toIso8601String(),

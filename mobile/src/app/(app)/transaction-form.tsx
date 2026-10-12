@@ -1,32 +1,54 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowDownLeft,
-  ArrowLeft,
   ArrowUpRight,
+  Banknote,
   CalendarDays,
   Check,
-  ChevronDown,
+  CircleEllipsis,
   CreditCard,
   FileText,
+  Landmark,
   Paperclip,
-  Tag,
-  WalletCards,
+  PiggyBank,
+  Smartphone,
+  type LucideIcon,
 } from 'lucide-react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { showAlert } from '@/components/app-alert';
+import { CategoryIcon } from '@/components/category-icon';
+import { cardShadow, Field, SectionLabel, SettingsCard, SettingsHeader } from '@/components/settings-ui';
 import { FormBanner } from '@/components/ui/form-banner';
+import { currencySymbol } from '@/features/budgets/period';
+import { accountApi, dashboardApi, transactionApi, type TransactionDetails, type TransactionInput } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
-import { accountApi, dashboardApi, transactionApi, type TransactionDetails, type TransactionInput } from '@/features/dashboard/api';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
 const paymentMethods = ['cash', 'gcash', 'maya', 'card', 'bank_transfer', 'other'] as const;
+type PaymentMethod = (typeof paymentMethods)[number];
+
+const PAYMENT_STYLE: Record<PaymentMethod, { label: string; Icon: LucideIcon }> = {
+  cash: { label: 'Cash', Icon: Banknote },
+  gcash: { label: 'GCash', Icon: Smartphone },
+  maya: { label: 'Maya', Icon: Smartphone },
+  card: { label: 'Card', Icon: CreditCard },
+  bank_transfer: { label: 'Bank transfer', Icon: Landmark },
+  other: { label: 'Other', Icon: CircleEllipsis },
+};
+
+/** Expense and income each get their own colour so the form never feels ambiguous. */
+const THEME = {
+  expense: { gradient: ['#34539A', colors.primary, '#16254A'] as const, accent: '#F87171', glow: colors.accent, tint: colors.accent, tintBg: colors.accentLight, Icon: ArrowUpRight, quick: [50, 100, 200, 500] },
+  income: { gradient: ['#22865D', '#166534', '#0F4A27'] as const, accent: '#4ADE80', glow: '#4ADE80', tint: colors.positiveText, tintBg: colors.positive, Icon: ArrowDownLeft, quick: [500, 1000, 1500, 3000] },
+};
 
 const todayString = (timezone?: string) => {
   const now = new Date();
@@ -42,14 +64,19 @@ const todayString = (timezone?: string) => {
 const toDateString = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-const formatMoney = (amount: string | number | undefined, currency: string) => {
-  if (amount === undefined || amount === '') return `0.00 ${currency}`;
-  const value = Number(amount);
-  if (!Number.isFinite(value)) return `0.00 ${currency}`;
+const dayBefore = (date: string) => {
+  const value = new Date(`${date}T12:00:00`);
+  value.setDate(value.getDate() - 1);
+  return toDateString(value);
+};
+
+const formatMoney = (amount: string | number | undefined, currency: string, digits = 2) => {
+  const value = Number(amount || 0);
+  if (!Number.isFinite(value)) return `${currency} 0.00`;
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2 }).format(value);
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
   } catch {
-    return `${currency} ${value.toFixed(2)}`;
+    return `${currency} ${value.toFixed(digits)}`;
   }
 };
 
@@ -70,22 +97,17 @@ export default function TransactionFormScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-8">
-        <View className="flex-row items-center pt-2">
-          <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-card">
-            <ArrowLeft size={19} color={colors.primary} />
-          </Pressable>
-          <View>
-            <Text className="text-[19px] font-bold capitalize tracking-tight text-primary">{id ? `Edit ${type}` : `Add ${type}`}</Text>
-            <Text className="mt-0.5 text-[11px] text-muted">{id ? 'Update the details below' : 'Record money in or money out'}</Text>
-          </View>
-        </View>
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-10">
+        <SettingsHeader
+          title={id ? `Edit ${type}` : 'New transaction'}
+          subtitle={id ? 'Update the details below.' : 'Record money going out or coming in.'}
+        />
 
-        {detail.isError && <View className="mt-3"><FormBanner message={getErrorMessage(detail.error)} /></View>}
+        {detail.isError && <View className="mt-4"><FormBanner message={getErrorMessage(detail.error)} /></View>}
         {id && detail.isPending ? (
-          <Text className="mt-8 text-center text-xs text-muted">Loading transaction…</Text>
+          <View className="mt-10 items-center"><ActivityIndicator color={colors.accent} /></View>
         ) : (
-          <TransactionFields key={`${type}-${id ?? 'new'}-${categoryId ?? ''}`} initialType={type} id={id} initial={detail.data} initialCategoryId={categoryId} timezone={user?.timezone} currency={user?.currency ?? 'USD'} />
+          <TransactionFields key={`${type}-${id ?? 'new'}-${categoryId ?? ''}`} initialType={type} id={id} initial={detail.data} initialCategoryId={categoryId} timezone={user?.timezone} currency={user?.currency ?? 'PHP'} />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -114,33 +136,35 @@ function TransactionFields({
   const [date, setDate] = useState(initial?.spent_on ?? initial?.received_on ?? todayString(timezone));
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category.id ?? initialCategoryId ?? null);
-  const [paymentMethod, setPaymentMethod] = useState<(typeof paymentMethods)[number]>(
-    paymentMethods.find((method) => method === initial?.payment_method) ?? 'cash',
-  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(paymentMethods.find((method) => method === initial?.payment_method) ?? 'cash');
   const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showCategories, setShowCategories] = useState(false);
-  const [showPayments, setShowPayments] = useState(false);
-  const [showAccounts, setShowAccounts] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
+  const theme = THEME[type];
   const categories = useQuery({ queryKey: ['categories', type], queryFn: () => transactionApi.categories(type) });
   const dashboard = useQuery({ queryKey: ['dashboard'], queryFn: dashboardApi.get });
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list });
   const selectedAccountId = accountId ?? accounts.data?.find((account) => account.is_default)?.id ?? accounts.data?.[0]?.id ?? null;
-  const selectedAccount = accounts.data?.find((account) => account.id === selectedAccountId);
   const selectedCategoryId = categoryId ?? categories.data?.[0]?.id ?? null;
   const selectedCategory = categories.data?.find((category) => category.id === selectedCategoryId);
-  const budgetLimit = dashboard.data?.budget?.category_limits.find((limit) => limit.category_id === selectedCategoryId);
+  const budgetLimit = type === 'expense' ? dashboard.data?.budget?.category_limits.find((limit) => limit.category_id === selectedCategoryId) : undefined;
   const categoryLeft = budgetLimit ? Number(budgetLimit.limit) - Number(budgetLimit.spent) : undefined;
+  const today = todayString(timezone);
+  const yesterday = dayBefore(today);
   const dateValue = new Date(`${date}T12:00:00`);
   const displayDate = Number.isNaN(dateValue.getTime())
     ? date
-    : new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(dateValue);
+    : new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(dateValue);
   const invalidAmount = !amount.trim() || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || !/^\d+(\.\d{1,2})?$/.test(amount.trim());
-  const validationMessage = !description.trim() || invalidAmount || !date.trim() || !selectedCategoryId
-    ? 'Enter a description, a valid amount, date, and category.'
-    : undefined;
+  const validationMessage = invalidAmount
+    ? 'Enter an amount above zero.'
+    : !description.trim()
+      ? `Add a short description of this ${type}.`
+      : !date.trim() || !selectedCategoryId
+        ? 'Choose a category and date.'
+        : undefined;
+  const afterThis = categoryLeft !== undefined && !invalidAmount ? categoryLeft - Number(amount) : undefined;
 
   const save = useMutation({
     mutationFn: () => {
@@ -174,125 +198,241 @@ function TransactionFields({
     if (!validationMessage) save.mutate();
   };
 
+  const switchType = (next: 'expense' | 'income') => {
+    if (next === type) return;
+    setType(next);
+    setCategoryId(null);
+    save.reset();
+  };
+
   return (
     <>
+      {/* Expense / income switch */}
       {!id && (
-        <View className="mt-5 flex-row rounded-2xl border border-border bg-white p-1.5">
+        <View style={cardShadow} className="mt-5 flex-row rounded-2xl bg-card p-1.5">
           {(['expense', 'income'] as const).map((option) => {
             const active = type === option;
-            const Icon = option === 'expense' ? ArrowUpRight : ArrowDownLeft;
-            return <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => { setType(option); setCategoryId(null); setShowCategories(false); }} className={`h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${active ? 'bg-primary' : ''}`}>
-              <Icon size={15} color={active ? '#FFFFFF' : colors.textSecondary} />
-              <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-muted'}`}>{option === 'expense' ? 'Expense' : 'Income'}</Text>
-              {active && <Check size={13} color="#FFFFFF" />}
-            </Pressable>;
+            const Icon = THEME[option].Icon;
+            return (
+              <Pressable
+                key={option}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                onPress={() => switchType(option)}
+                className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${active ? (option === 'expense' ? 'bg-primary' : 'bg-positive-text') : ''}`}>
+                <Icon size={17} color={active ? '#FFFFFF' : colors.textSecondary} strokeWidth={2.4} />
+                <Text className={`text-[14px] font-bold ${active ? 'text-white' : 'text-muted'}`}>{option === 'expense' ? 'Expense' : 'Income'}</Text>
+              </Pressable>
+            );
           })}
         </View>
       )}
 
-      <View className="mt-4 overflow-hidden rounded-[26px] bg-primary px-5 pb-5 pt-4">
-        <View pointerEvents="none" className="absolute -right-8 -top-12 h-40 w-40 rounded-full bg-white/[0.06]" />
-        <View pointerEvents="none" className="absolute -bottom-20 right-16 h-32 w-32 rounded-full bg-white/[0.04]" />
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-white/10">
-              {type === 'expense' ? <ArrowUpRight size={17} color="#FFD1D5" /> : <ArrowDownLeft size={17} color="#BDF5DC" />}
+      {/* Amount */}
+      <View className="mt-4 overflow-hidden rounded-[28px]">
+        <LinearGradient colors={theme.gradient} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 20 }}>
+          <View pointerEvents="none" className="absolute -right-12 -top-16 h-48 w-48 rounded-full opacity-25" style={{ backgroundColor: theme.glow }} />
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <View className="h-8 w-8 items-center justify-center rounded-xl bg-white/15">
+                <theme.Icon size={17} color={theme.accent} strokeWidth={2.4} />
+              </View>
+              <Text className="text-[12px] font-semibold uppercase tracking-[1.2px] text-white/70">{type === 'expense' ? 'Money out' : 'Money in'}</Text>
             </View>
-            <Text className="text-[10px] font-semibold uppercase tracking-[1.4px] text-white/75">{type} amount</Text>
+            <View className="rounded-full bg-white/15 px-2.5 py-1">
+              <Text className="text-[11px] font-bold text-white">{currency}</Text>
+            </View>
           </View>
-          <View className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">
-            <Text className="text-[10px] font-bold tracking-wide text-white">{currency}</Text>
+
+          <View className="mt-4 flex-row items-center">
+            <Text className="mr-1.5 text-[34px] font-bold text-white/70">{currencySymbol(currency)}</Text>
+            <TextInput
+              accessibilityLabel="Transaction amount"
+              value={amount}
+              onChangeText={(value) => { setAmount(value.replace(',', '.').replace(/[^\d.]/g, '')); save.reset(); }}
+              placeholder="0.00"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              keyboardType="decimal-pad"
+              selectionColor="white"
+              className="flex-1 py-0 text-[46px] font-extrabold tracking-tight text-white"
+            />
           </View>
-        </View>
-        <View className="mt-4 flex-row items-center border-b border-white/20 pb-3">
-          <Text className="mr-2 text-[30px] font-semibold text-white/70">{currencySymbol(currency)}</Text>
-          <TextInput accessibilityLabel="Transaction amount" value={amount} onChangeText={(value) => { setAmount(value.replace(',', '.')); save.reset(); }} placeholder="0.00" placeholderTextColor="rgba(255,255,255,0.45)" keyboardType="decimal-pad" className="flex-1 py-0 text-[42px] font-bold tracking-tight text-white" />
-        </View>
-        <Text className="mt-3 text-[10px] text-white/65">{type === 'expense' ? 'How much did you spend?' : 'How much did you receive?'}</Text>
+          <Text className="mt-1 text-[13px] text-white/65">{type === 'expense' ? 'How much did you spend?' : 'How much did you receive?'}</Text>
+
+          <View className="mt-4 flex-row gap-2">
+            {theme.quick.map((value) => {
+              const selected = Number(amount) === value;
+              return (
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  onPress={() => { setAmount(value.toFixed(2)); save.reset(); }}
+                  className={`flex-1 items-center rounded-xl border py-2 ${selected ? 'border-white bg-white' : 'border-white/15 bg-white/10'}`}>
+                  <Text className={`text-[12px] font-bold ${selected ? 'text-primary' : 'text-white'}`}>{formatMoney(value, currency, 0)}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </LinearGradient>
       </View>
 
-      <View className="mb-2 mt-6 flex-row items-end justify-between">
-        <View><Text className="text-[16px] font-bold text-primary">Transaction details</Text><Text className="mt-0.5 text-[10px] text-muted">Add the information you want to remember.</Text></View>
-        <View className="mb-0.5 rounded-full bg-accent-light px-2 py-1"><Text className="text-[9px] font-semibold text-primary">{id ? 'EDITING' : 'NEW'}</Text></View>
-      </View>
+      {/* What */}
+      <SettingsCard className="mt-4 px-4 pb-5 pt-1">
+        <Field
+          label={type === 'expense' ? 'What was it for?' : 'Where did it come from?'}
+          Icon={FileText}
+          value={description}
+          onChangeText={(value) => { setDescription(value); save.reset(); }}
+          placeholder={type === 'expense' ? 'e.g. Lunch at the canteen' : 'e.g. Weekly allowance'}
+          maxLength={150}
+          error={attemptedSubmit && !description.trim() ? 'Add a short description.' : undefined}
+        />
+      </SettingsCard>
 
-      <View className="rounded-[22px] border border-[#E8EBF3] bg-white px-4 pt-4">
-        <Field label={type === 'expense' ? 'Merchant or description' : 'Source or description'} icon={<FileText size={14} color={colors.textSecondary} />}>
-          <TextInput value={description} onChangeText={(value) => { setDescription(value); save.reset(); }} placeholder={type === 'expense' ? 'What did you spend on?' : 'Where did this money come from?'} placeholderTextColor={colors.textSecondary} maxLength={150} className="h-12 rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3.5 text-[12px] text-ink" />
-        </Field>
-
-        <Field label="Category" icon={<Tag size={14} color={colors.textSecondary} />}>
-          <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCategories }} onPress={() => setShowCategories((shown) => !shown)} className="h-12 flex-row items-center justify-between rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3.5">
-            <Text className={`flex-1 text-[12px] ${selectedCategory ? 'font-medium text-ink' : 'text-muted'}`}>{categories.isPending ? 'Loading categories…' : selectedCategory?.name ?? 'Choose a category'}</Text>
-            <ChevronDown size={16} color={colors.primary} />
-          </Pressable>
-          {showCategories && categories.data && (
-            <View className="mt-1 rounded-[14px] border border-[#E7EAF1] bg-white p-1.5">
-              {categories.data.map((category) => <Pressable key={category.id} accessibilityRole="button" accessibilityState={{ selected: category.id === selectedCategoryId }} onPress={() => { setCategoryId(category.id); setShowCategories(false); }} className={`flex-row items-center justify-between rounded-[10px] px-3.5 py-3 ${category.id === selectedCategoryId ? 'bg-accent-light' : ''}`}><Text className="text-[12px] font-medium text-primary">{category.name}</Text>{category.id === selectedCategoryId && <Check size={14} color={colors.primary} />}</Pressable>)}
-            </View>
-          )}
-          {budgetLimit && <View className="mt-2 flex-row items-center justify-between rounded-xl bg-accent-light/70 px-3 py-2"><Text className="text-[9px] text-primary">Budget left · {selectedCategory?.name}</Text><Text className="text-[10px] font-bold text-primary">{formatMoney(categoryLeft, currency)}</Text></View>}
-          {categories.isError && <Pressable onPress={() => void categories.refetch()} className="mt-1.5 self-start"><Text className="text-[10px] font-medium text-error">Couldn’t load categories. Tap to retry.</Text></Pressable>}
-          {!categories.isPending && !categories.isError && categories.data?.length === 0 && <Text className="mt-1.5 text-[10px] text-error">No {type} categories are available yet.</Text>}
-        </Field>
-
-        <View className="flex-row gap-3">
-          <Field label="Date" icon={<CalendarDays size={14} color={colors.textSecondary} />} className="flex-1">
-            <Pressable accessibilityRole="button" onPress={() => setShowDatePicker(true)} className="h-12 flex-row items-center justify-between rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3">
-              <Text numberOfLines={1} className="text-[11px] font-medium text-ink">{displayDate}</Text><CalendarDays size={15} color={colors.primary} />
-            </Pressable>
-          </Field>
-          {type === 'expense' && (
-            <Field label="Payment" icon={<CreditCard size={14} color={colors.textSecondary} />} className="flex-1">
-              <Pressable accessibilityRole="button" accessibilityState={{ expanded: showPayments }} onPress={() => setShowPayments((shown) => !shown)} className="h-12 flex-row items-center justify-between rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3">
-                <Text numberOfLines={1} className="flex-1 text-[10px] font-medium text-ink">{paymentMethod === 'card' ? 'Debit · 4821' : paymentMethodLabel(paymentMethod)}</Text><ChevronDown size={15} color={colors.primary} />
+      {/* Category */}
+      <SectionLabel>Category</SectionLabel>
+      {categories.isPending ? (
+        <SettingsCard className="items-center p-6"><ActivityIndicator color={colors.accent} /></SettingsCard>
+      ) : categories.isError ? (
+        <Pressable onPress={() => void categories.refetch()}><FormBanner message="Couldn’t load categories. Tap to retry." /></Pressable>
+      ) : categories.data?.length ? (
+        <View className="flex-row flex-wrap gap-2.5">
+          {categories.data.map((category) => {
+            const selected = category.id === selectedCategoryId;
+            return (
+              <Pressable
+                key={category.id}
+                accessibilityRole="radio"
+                accessibilityLabel={category.name}
+                accessibilityState={{ checked: selected }}
+                onPress={() => { setCategoryId(category.id); save.reset(); }}
+                style={[cardShadow, { width: '31%' }]}
+                className={`items-center rounded-2xl border-2 bg-card px-1.5 py-3 ${selected ? (type === 'expense' ? 'border-accent' : 'border-positive-text') : 'border-transparent'}`}>
+                <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: selected ? theme.tintBg : colors.background }}>
+                  <CategoryIcon icon={category.icon} size={19} color={selected ? theme.tint : colors.textSecondary} strokeWidth={2} />
+                </View>
+                <Text numberOfLines={1} className={`mt-1.5 text-center text-[11px] ${selected ? 'font-bold text-ink' : 'font-semibold text-muted'}`}>{category.name}</Text>
               </Pressable>
-            </Field>
+            );
+          })}
+        </View>
+      ) : (
+        <FormBanner message={`No ${type} categories are available yet.`} tone="info" />
+      )}
+      {budgetLimit && categoryLeft !== undefined && (
+        <View className={`mt-3 flex-row items-center justify-between rounded-2xl px-4 py-3 ${afterThis !== undefined && afterThis < 0 ? 'bg-error-bg' : 'bg-accent-light'}`}>
+          <View className="flex-1 pr-2">
+            <Text className="text-[12px] font-semibold text-primary">{selectedCategory?.name} budget</Text>
+            <Text className="mt-0.5 text-[11px] text-muted">{formatMoney(categoryLeft, currency)} left this period</Text>
+          </View>
+          {afterThis !== undefined && (
+            <View className="items-end">
+              <Text className="text-[11px] text-muted">After this</Text>
+              <Text className={`text-[14px] font-bold ${afterThis < 0 ? 'text-error' : 'text-primary'}`}>{afterThis < 0 ? `−${formatMoney(Math.abs(afterThis), currency)}` : formatMoney(afterThis, currency)}</Text>
+            </View>
           )}
         </View>
-        {showPayments && type === 'expense' && (
-          <View className="-mt-1 mb-3 rounded-[14px] border border-[#E7EAF1] bg-white p-1.5">
-            {paymentMethods.map((method) => <Pressable key={method} accessibilityRole="button" accessibilityState={{ selected: method === paymentMethod }} onPress={() => { setPaymentMethod(method); setShowPayments(false); }} className={`flex-row items-center justify-between rounded-[10px] px-3.5 py-3 ${method === paymentMethod ? 'bg-accent-light' : ''}`}><Text className="text-[11px] font-medium text-primary">{paymentMethodLabel(method)}</Text>{method === paymentMethod && <Check size={14} color={colors.primary} />}</Pressable>)}
+      )}
+
+      {/* When */}
+      <SectionLabel>Date</SectionLabel>
+      <View className="flex-row gap-2.5">
+        <Chip label="Today" selected={date === today} onPress={() => setDate(today)} />
+        <Chip label="Yesterday" selected={date === yesterday} onPress={() => setDate(yesterday)} />
+        <Chip
+          label={date !== today && date !== yesterday ? displayDate : 'Pick a date'}
+          Icon={CalendarDays}
+          selected={date !== today && date !== yesterday}
+          onPress={() => setShowDatePicker(true)}
+          grow
+        />
+      </View>
+
+      {/* How (expenses only) */}
+      {type === 'expense' && (
+        <>
+          <SectionLabel>Paid with</SectionLabel>
+          <View className="flex-row flex-wrap gap-2">
+            {paymentMethods.map((method) => {
+              const style = PAYMENT_STYLE[method];
+              return <Chip key={method} label={style.label} Icon={style.Icon} selected={method === paymentMethod} onPress={() => setPaymentMethod(method)} />;
+            })}
           </View>
-        )}
+        </>
+      )}
 
-        <Field label={type === 'expense' ? 'From account' : 'Deposit to'} icon={<WalletCards size={14} color={colors.textSecondary} />}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Choose account" accessibilityState={{ expanded: showAccounts }} onPress={() => setShowAccounts((shown) => !shown)} className="h-12 flex-row items-center justify-between rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3.5">
-            <Text numberOfLines={1} className="flex-1 text-[11px] font-medium text-ink">{accounts.isPending ? 'Loading accounts…' : selectedAccount ? selectedAccount.name : 'Choose an account'}</Text>
-            {selectedAccount && <Text className="mr-2 text-[10px] font-semibold text-muted">{formatMoney(selectedAccount.balance, currency)}</Text>}
-            <ChevronDown size={15} color={colors.primary} />
-          </Pressable>
-          {showAccounts && accounts.data && <View className="mt-1 rounded-[14px] border border-[#E7EAF1] bg-white p-1.5">
-            {accounts.data.map((account) => <Pressable key={account.id} accessibilityRole="button" accessibilityState={{ selected: account.id === selectedAccountId }} onPress={() => { setAccountId(account.id); setShowAccounts(false); }} className={`flex-row items-center justify-between rounded-[10px] px-3.5 py-3 ${account.id === selectedAccountId ? 'bg-accent-light' : ''}`}>
-              <Text className="text-[11px] font-medium text-primary">{account.name}</Text>
-              <View className="flex-row items-center gap-2"><Text className="text-[10px] text-muted">{formatMoney(account.balance, currency)}</Text>{account.id === selectedAccountId && <Check size={14} color={colors.primary} />}</View>
-            </Pressable>)}
-          </View>}
-          {accounts.isError && <Pressable onPress={() => void accounts.refetch()} className="mt-1.5 self-start"><Text className="text-[9px] font-medium text-error">Couldn’t load accounts. Tap to retry.</Text></Pressable>}
-        </Field>
-      </View>
+      {/* Account */}
+      <SectionLabel>{type === 'expense' ? 'From account' : 'Deposit to'}</SectionLabel>
+      {accounts.isError ? (
+        <Pressable onPress={() => void accounts.refetch()}><FormBanner message="Couldn’t load accounts. Tap to retry." /></Pressable>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5" contentContainerClassName="gap-2.5 px-5 pb-1">
+          {(accounts.data ?? []).map((account) => {
+            const selected = account.id === selectedAccountId;
+            return (
+              <Pressable
+                key={account.id}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected }}
+                onPress={() => setAccountId(account.id)}
+                style={cardShadow}
+                className={`min-w-[150px] rounded-2xl border-2 bg-card p-3.5 ${selected ? 'border-primary' : 'border-transparent'}`}>
+                <View className="flex-row items-center justify-between">
+                  <View className={`h-8 w-8 items-center justify-center rounded-xl ${selected ? 'bg-primary' : 'bg-background'}`}>
+                    <PiggyBank size={16} color={selected ? '#FFFFFF' : colors.textSecondary} />
+                  </View>
+                  {selected && <Check size={16} color={colors.primary} strokeWidth={2.6} />}
+                </View>
+                <Text numberOfLines={1} className="mt-2.5 text-[13px] font-bold text-ink">{account.name}</Text>
+                <Text className="mt-0.5 text-[12px] text-muted">{formatMoney(account.balance, currency)}</Text>
+              </Pressable>
+            );
+          })}
+          {accounts.isPending && <ActivityIndicator color={colors.accent} />}
+        </ScrollView>
+      )}
 
-      <View className="mb-2 mt-5 flex-row items-end justify-between">
-        <View><Text className="text-[15px] font-bold text-primary">Extra details</Text><Text className="mt-0.5 text-[10px] text-muted">Optional, but useful later.</Text></View>
-        <Text className="mb-0.5 text-[9px] font-medium text-muted">OPTIONAL</Text>
-      </View>
-      <View className="rounded-[22px] border border-[#E8EBF3] bg-white p-4">
-        <Field label="Note" icon={<FileText size={14} color={colors.textSecondary} />} className="mb-0">
-          <TextInput value={notes} onChangeText={setNotes} placeholder="Add a note or reminder" placeholderTextColor={colors.textSecondary} multiline maxLength={1000} textAlignVertical="top" className="min-h-12 rounded-[14px] border border-[#E7EAF1] bg-[#FAFBFD] px-3.5 py-3 text-[11px] text-ink" />
-        </Field>
-
-        <Pressable accessibilityRole="button" onPress={() => showAlert('Receipt attachment', 'Receipt uploads are coming soon.', undefined, { icon: Paperclip })} className="mt-3 h-12 flex-row items-center gap-2.5 rounded-[14px] border border-dashed border-[#D8DEEA] bg-[#FAFBFD] px-3.5">
-          <View className="h-7 w-7 items-center justify-center rounded-lg bg-accent-light"><Paperclip size={14} color={colors.primary} /></View><View className="flex-1"><Text className="text-[10px] font-semibold text-primary">Attach a receipt</Text><Text className="mt-0.5 text-[9px] text-muted">Receipt uploads coming soon</Text></View><ChevronDown size={14} color={colors.textSecondary} />
+      {/* Extras */}
+      <SectionLabel>Extras · Optional</SectionLabel>
+      <SettingsCard className="px-4 pb-4 pt-1">
+        <Text className="mb-1.5 ml-0.5 mt-4 text-[13px] font-semibold text-ink">Note</Text>
+        <TextInput
+          accessibilityLabel="Note"
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Add a note or reminder"
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          maxLength={1000}
+          textAlignVertical="top"
+          className="min-h-[84px] rounded-2xl border-[1.5px] border-border bg-background px-3.5 py-3 text-[15px] text-ink"
+        />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => showAlert('Receipt attachment', 'Receipt uploads are coming soon.', undefined, { icon: Paperclip })}
+          className="mt-3 flex-row items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-border px-3.5 py-3 active:opacity-70">
+          <View className="h-9 w-9 items-center justify-center rounded-xl bg-accent-light"><Paperclip size={16} color={colors.primary} /></View>
+          <View className="flex-1">
+            <Text className="text-[13px] font-semibold text-ink">Attach a receipt</Text>
+            <Text className="mt-0.5 text-[11px] text-muted">Coming soon</Text>
+          </View>
         </Pressable>
-      </View>
+      </SettingsCard>
 
       {validationMessage && attemptedSubmit && <View className="mt-4"><FormBanner message={validationMessage} /></View>}
       {save.isError && <View className="mt-4"><FormBanner message={getErrorMessage(save.error)} /></View>}
 
-      <Pressable accessibilityRole="button" disabled={save.isPending || categories.isPending || accounts.isPending || !categories.data?.length || !selectedAccountId} onPress={submit} className="mt-5 h-[54px] flex-row items-center justify-center rounded-2xl bg-primary active:opacity-80">
-        <Text className="text-[13px] font-bold text-white">{save.isPending ? 'Saving transaction…' : `Save ${type} · ${formatMoney(amount || 0, currency)}`}</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={save.isPending || categories.isPending || accounts.isPending || !categories.data?.length || !selectedAccountId}
+        onPress={submit}
+        style={[cardShadow, { shadowOpacity: 0.22 }]}
+        className={`mt-6 h-[56px] flex-row items-center justify-center gap-2 rounded-2xl active:opacity-85 ${type === 'expense' ? 'bg-primary' : 'bg-positive-text'}`}>
+        {save.isPending ? <ActivityIndicator color="white" /> : <Check size={18} color="white" strokeWidth={2.6} />}
+        <Text className="text-[15px] font-bold text-white">
+          {save.isPending ? 'Saving…' : `${id ? 'Save' : 'Add'} ${type} · ${formatMoney(invalidAmount ? 0 : amount, currency)}`}
+        </Text>
       </Pressable>
-      <Text className="mb-2 mt-2 text-center text-[9px] text-muted">Your transaction is saved securely to your PocketPlan account.</Text>
 
       {showDatePicker && (
         <DateTimePicker
@@ -309,18 +449,16 @@ function TransactionFields({
   );
 }
 
-function Field({ label, icon, children, className = '' }: { label: string; icon?: React.ReactNode; children: React.ReactNode; className?: string }) {
-  return <View className={`mb-4 ${className}`}><View className="mb-2 flex-row items-center gap-1.5">{icon}<Text className="text-[10px] font-semibold text-ink">{label}</Text></View>{children}</View>;
-}
-
-function paymentMethodLabel(method: (typeof paymentMethods)[number]) {
-  return method.split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ');
-}
-
-function currencySymbol(currency: string) {
-  try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).formatToParts(0).find((part) => part.type === 'currency')?.value ?? `${currency} `;
-  } catch {
-    return `${currency} `;
-  }
+function Chip({ label, Icon, selected, onPress, grow = false }: { label: string; Icon?: LucideIcon; selected: boolean; onPress: () => void; grow?: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={selected ? undefined : cardShadow}
+      className={`h-11 flex-row items-center justify-center gap-1.5 rounded-full px-4 ${grow ? 'flex-1' : ''} ${selected ? 'bg-primary' : 'bg-card'}`}>
+      {Icon ? <Icon size={15} color={selected ? '#FFFFFF' : colors.textSecondary} /> : null}
+      <Text numberOfLines={1} className={`text-[13px] font-semibold ${selected ? 'text-white' : 'text-ink'}`}>{label}</Text>
+    </Pressable>
+  );
 }

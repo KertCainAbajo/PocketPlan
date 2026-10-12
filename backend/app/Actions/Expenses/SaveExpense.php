@@ -18,6 +18,7 @@ use Carbon\CarbonImmutable;
  *     notes?: string|null,
  *     payment_method?: string|null,
  *     spent_on: string,
+ *     spent_time?: string|null,
  * }
  */
 class SaveExpense
@@ -56,6 +57,7 @@ class SaveExpense
             'notes' => $input['notes'] ?? null,
             'payment_method' => $input['payment_method'] ?? null,
             'spent_on' => $input['spent_on'],
+            'spent_time' => $input['spent_time'] ?? null,
         ]);
         $expense->budget_id = $this->periods->budgetFor($user, CarbonImmutable::parse($input['spent_on']))?->id;
         $expense->save();

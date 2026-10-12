@@ -60,9 +60,11 @@ type FieldProps = React.ComponentProps<typeof TextInput> & {
   Icon?: LucideIcon;
   /** Adds a show/hide toggle for passwords. */
   password?: boolean;
+  /** Fixed text before the value, e.g. a currency symbol. Replaces the icon. */
+  prefix?: string;
 };
 
-export function Field({ label, hint, error, Icon, password = false, ...input }: FieldProps) {
+export function Field({ label, hint, error, Icon, password = false, prefix, ...input }: FieldProps) {
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
   const border = error ? colors.error : focused ? colors.accent : colors.border;
@@ -71,14 +73,18 @@ export function Field({ label, hint, error, Icon, password = false, ...input }: 
     <View className="mt-4">
       <Text className="mb-1.5 ml-0.5 text-[13px] font-semibold text-ink">{label}</Text>
       <View className="h-[52px] flex-row items-center rounded-2xl border-[1.5px] bg-background px-3.5" style={{ borderColor: border }}>
-        {Icon ? <Icon size={18} color={focused ? colors.accent : colors.textSecondary} /> : null}
+        {prefix ? (
+          <Text className={`text-[17px] font-bold ${focused || input.value ? 'text-primary' : 'text-muted'}`}>{prefix}</Text>
+        ) : Icon ? (
+          <Icon size={18} color={focused ? colors.accent : colors.textSecondary} />
+        ) : null}
         <TextInput
           {...input}
           secureTextEntry={password && !visible}
           onFocus={(event) => { setFocused(true); input.onFocus?.(event); }}
           onBlur={(event) => { setFocused(false); input.onBlur?.(event); }}
           placeholderTextColor={colors.textSecondary}
-          className={`flex-1 py-0 text-[15px] text-ink ${Icon ? 'ml-2.5' : ''}`}
+          className={`flex-1 py-0 text-[15px] text-ink ${prefix ? 'ml-1.5' : Icon ? 'ml-2.5' : ''}`}
         />
         {password ? (
           <Pressable
