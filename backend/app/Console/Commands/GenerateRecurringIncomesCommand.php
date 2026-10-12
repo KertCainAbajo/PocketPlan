@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\RecurringIncomeGenerator;
 use App\Services\AllowancePeriodManager;
+use App\Services\RecurringIncomeGenerator;
 use Illuminate\Console\Command;
 
 class GenerateRecurringIncomesCommand extends Command

@@ -130,6 +130,7 @@ class GoogleBrowserLoginController extends Controller
                         'host' => $request->getHost(),
                         'state_age_seconds' => $stateAge,
                     ]);
+
                     return $this->backToApp($appRedirect, ['error' => 'That Google sign-in had expired. Please tap Continue with Google again.']);
                 }
 

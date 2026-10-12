@@ -29,6 +29,15 @@ export interface DashboardData {
       remaining: string;
       percent_used: number;
       is_overspent: boolean;
+      // Daily guidance computed on the server (null once the budget has ended).
+      state?: 'upcoming' | 'active' | 'ended' | 'completed';
+      days_remaining?: number;
+      daily_target?: string | null;
+      today_remaining?: string | null;
+      spent_today?: string;
+      status?: 'safe' | 'watch' | 'over' | null;
+      status_label?: string | null;
+      pace_exceeds_limit?: boolean;
     };
     category_limits: { category_id: number; name: string; icon: string; limit: string; spent: string }[];
   };
@@ -249,7 +258,7 @@ export const budgetApi = {
     const { data } = await api.post<{ data: BudgetItem }>('/budgets', input);
     return data.data;
   },
-  async update(id: number, input: { name: string; spending_limit: string; frequency: BudgetItem['frequency']; start_date: string; end_date: string; category_limits: { category_id: number; limit_amount: string }[] }): Promise<BudgetItem> {
+  async update(id: number, input: { name: string; spending_limit: string; frequency: BudgetItem['frequency']; start_date: string; end_date?: string; category_limits?: { category_id: number; limit_amount: string }[] }): Promise<BudgetItem> {
     const { data } = await api.put<{ data: BudgetItem }>(`/budgets/${id}`, input);
     return data.data;
   },

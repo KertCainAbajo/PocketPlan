@@ -6,10 +6,13 @@ use App\Enums\AllowanceFrequency;
 use App\Enums\CategoryType;
 use App\Http\Requests\Concerns\HasMoneyRules;
 use App\Rules\SelectableCategory;
+use App\Support\Money;
+use Brick\Math\BigDecimal;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Validator;
 
 /**
  * Create (POST) and full update (PUT) of a budget. end_date may be omitted for
@@ -44,6 +47,59 @@ class BudgetRequest extends FormRequest
         return [
             'category_limits.*.limit_amount.lte' => 'A category limit cannot be larger than the whole budget.',
             'category_limits.*.category_id.distinct' => 'Each category can only have one limit.',
+        ];
+    }
+
+    /**
+     * The money assigned to categories cannot add up to more than the budget itself:
+     * students split their period's money across categories, they cannot invent more.
+     *
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $budget = Money::of((string) $this->input('spending_limit'));
+                $limits = $this->input('category_limits');
+
+                if (is_array($limits)) {
+                    $assigned = array_reduce(
+                        $limits,
+                        fn (BigDecimal $sum, mixed $row) => $sum->plus(Money::of((string) ($row['limit_amount'] ?? '0'))),
+                        Money::zero(),
+                    );
+
+                    if ($assigned->isGreaterThan($budget)) {
+                        $validator->errors()->add(
+                            'category_limits',
+                            'Your categories add up to '.Money::format($assigned).', more than this budget ('.Money::format($budget).'). Lower a category or raise the budget.',
+                        );
+                    }
+
+                    return;
+                }
+
+                // Changing only the amount keeps the saved categories, so it cannot drop below them.
+                // Someone else's id is not found here and becomes a 404 in the controller.
+                $saved = $this->route('budget') === null ? null : $this->user()?->budgets()->find($this->route('budget'));
+                if ($saved === null) {
+                    return;
+                }
+
+                $assigned = Money::of((string) $saved->categoryLimits()->sum('limit_amount'));
+
+                if ($assigned->isGreaterThan($budget)) {
+                    $validator->errors()->add(
+                        'spending_limit',
+                        'Your categories already use '.Money::format($assigned).'. Enter at least that much, or lower a category first.',
+                    );
+                }
+            },
         ];
     }
 

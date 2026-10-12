@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\UserResource;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -33,7 +34,7 @@ class ProfileController extends Controller
         return new UserResource($user->refresh());
     }
 
-    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
+    public function changePassword(Request $request): JsonResponse
     {
         $input = $request->validate([
             'current_password' => ['required', 'string'],
@@ -47,7 +48,7 @@ class ProfileController extends Controller
         return response()->json(['message' => 'Your password has been updated.']);
     }
 
-    public function revokeOtherSessions(Request $request): \Illuminate\Http\JsonResponse
+    public function revokeOtherSessions(Request $request): JsonResponse
     {
         $request->user()->tokens()->whereKeyNot($request->user()->currentAccessToken()->getKey())->delete();
 

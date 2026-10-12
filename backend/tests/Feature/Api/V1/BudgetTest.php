@@ -182,6 +182,41 @@ class BudgetTest extends TestCase
         ]]))->assertJsonValidationErrors('category_limits.1.category_id');
     }
 
+    public function test_category_limits_cannot_add_up_to_more_than_the_budget(): void
+    {
+        $food = $this->defaultCategory('Food')->id;
+        $transport = $this->defaultCategory('Transportation')->id;
+
+        $this->postJson('/api/v1/budgets', $this->payload(['category_limits' => [
+            ['category_id' => $food, 'limit_amount' => '1500'],
+            ['category_id' => $transport, 'limit_amount' => '500.01'],
+        ]]))->assertJsonValidationErrors('category_limits');
+
+        $this->postJson('/api/v1/budgets', $this->payload(['category_limits' => [
+            ['category_id' => $food, 'limit_amount' => '1500'],
+            ['category_id' => $transport, 'limit_amount' => '500'],
+        ]]))->assertCreated();
+    }
+
+    public function test_amount_can_be_changed_without_resending_categories(): void
+    {
+        $food = $this->defaultCategory('Food')->id;
+        $id = $this->postJson('/api/v1/budgets', $this->payload(['category_limits' => [['category_id' => $food, 'limit_amount' => '800']]]))->json('data.id');
+
+        $this->putJson("/api/v1/budgets/{$id}", $this->payload(['spending_limit' => '799.99']))
+            ->assertJsonValidationErrors('spending_limit');
+
+        $this->putJson("/api/v1/budgets/{$id}", $this->payload(['spending_limit' => '1500', 'frequency' => 'monthly']))
+            ->assertOk()
+            ->assertJsonPath('data.spending_limit', '1500.00')
+            ->assertJsonPath('data.end_date', '2026-11-04')
+            ->assertJsonCount(1, 'data.category_limits');
+
+        $this->putJson("/api/v1/budgets/{$id}", $this->payload(['spending_limit' => '500', 'category_limits' => []]))
+            ->assertOk()
+            ->assertJsonCount(0, 'data.category_limits');
+    }
+
     public function test_list_filter_and_privacy(): void
     {
         Budget::factory()->for($this->student)->completed()->create(['start_date' => '2026-09-01', 'end_date' => '2026-09-30']);

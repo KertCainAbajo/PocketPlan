@@ -179,9 +179,10 @@ export default function ProfileSettingScreen() {
       </>}
 
       {section === 'help' && <>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/how-it-works')} className="mb-4 flex-row items-center gap-3 rounded-[17px] bg-primary p-4 active:opacity-85"><CircleHelp size={20} color="white" /><View className="flex-1"><Text className="text-[13px] font-bold text-white">How PocketPlan works</Text><Text className="mt-0.5 text-[11px] text-white/75">The whole flow in 5 steps, plus what each word means.</Text></View><ChevronRight size={16} color="white" /></Pressable>
         <Text className="mb-3 text-[11px] text-muted">Quick answers to help you get started.</Text>
         <View className="rounded-[17px] bg-white px-4">{[
-          ['How do I add a transaction?', 'Open Activity and tap the add button. Choose income or expense, enter the amount, and save it to an account.'],
+          ['How do I add a transaction?', 'On Home, tap Expense or Income. Enter the amount, pick a category and date, then save. It counts in the budget for that date.'],
           ['How do savings goals work?', 'Create a goal with a target and optionally add an existing starting amount. Contributions move money from an account into savings without counting as spending.'],
           ['Does PocketPlan connect to my bank?', 'No. Accounts are tracked manually. PocketPlan never asks for your banking password.'],
           ['How can I export my data?', 'Open Profile & settings and choose Export your data. PocketPlan creates a CSV you can save or share.'],

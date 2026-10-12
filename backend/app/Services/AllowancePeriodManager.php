@@ -6,7 +6,6 @@ use App\Enums\AllowanceFrequency;
 use App\Enums\BudgetStatus;
 use App\Models\Budget;
 use App\Models\BudgetRollover;
-use App\Models\RecurringIncome;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;

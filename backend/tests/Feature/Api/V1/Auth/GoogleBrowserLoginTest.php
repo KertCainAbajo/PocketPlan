@@ -104,10 +104,12 @@ class GoogleBrowserLoginTest extends TestCase
         $first = $this->appParams($this->post('/api/v1/auth/google/callback', ['state' => $state, 'id_token' => 't']));
         $this->assertArrayHasKey('code', $first);
 
-        // A replay (e.g. Android reopening an old browser tab) goes back to the app with an error, never a code.
+        // Android can deliver the same callback twice: the replay gets the same one-time code, never a second one,
+        // and that code still works only once.
         $replay = $this->appParams($this->post('/api/v1/auth/google/callback', ['state' => $state, 'id_token' => 't']));
-        $this->assertArrayNotHasKey('code', $replay);
-        $this->assertStringContainsString('expired', $replay['error']);
+        $this->assertSame($first['code'], $replay['code']);
+        $this->postJson('/api/v1/auth/google/exchange', ['code' => $first['code']])->assertOk();
+        $this->postJson('/api/v1/auth/google/exchange', ['code' => $replay['code']])->assertJsonValidationErrors('code');
 
         // A forged or tampered state is rejected outright.
         $this->post('/api/v1/auth/google/callback', ['state' => 'forged', 'id_token' => 't'])->assertStatus(400);

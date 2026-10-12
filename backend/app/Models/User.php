@@ -141,12 +141,17 @@ class User extends Authenticatable
     /** Create the personal default account when this user has none yet. */
     public function ensureDefaultAccount(): Account
     {
-        return $this->defaultAccount()->firstOrCreate([], [
-            'name' => 'Everyday account',
-            'type' => 'cash',
-            'opening_balance' => '0.00',
-            'is_default' => true,
-        ]);
+        $existing = $this->defaultAccount()->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        // is_default is not mass assignable, so a client can never promote its own account.
+        $account = new Account(['name' => 'Everyday account', 'type' => 'cash', 'opening_balance' => '0.00']);
+        $account->is_default = true;
+        $this->accounts()->save($account);
+
+        return $account;
     }
 
     /** @return HasMany<Expense, $this> */
