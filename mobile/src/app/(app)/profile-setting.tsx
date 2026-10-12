@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Check, ChevronDown, ChevronRight, CircleHelp, LockKeyhole, Plus, Trash2, Wallet } from 'lucide-react-native';
-import { useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, ChevronDown, ChevronRight, CircleHelp, LockKeyhole, Plus, Trash2, Wallet } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { accountApi, type Account } from '@/features/dashboard/api';
 import { profileApi, type NotificationPreferences } from '@/features/profile/api';
+import { budgetFrequencies, getBudgetFrequencyPreference, setBudgetFrequencyPreference, type BudgetFrequencyPreference } from '@/features/profile/budget-preferences';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
@@ -30,9 +31,19 @@ export default function ProfileSettingScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [expandedHelp, setExpandedHelp] = useState<number | null>(0);
+  const [budgetFrequency, setBudgetFrequency] = useState<BudgetFrequencyPreference>('weekly');
+  const [budgetFrequencySaved, setBudgetFrequencySaved] = useState(false);
 
   const accountQuery = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list, enabled: section === 'accounts' });
   const notifications = useQuery({ queryKey: ['notification-preferences'], queryFn: profileApi.notifications, enabled: section === 'notifications' });
+
+  useEffect(() => {
+    let active = true;
+    if (section === 'budget-period' && user?.id) {
+      void getBudgetFrequencyPreference(user.id).then((frequency) => { if (active) setBudgetFrequency(frequency); }).catch((failure) => { if (active) setError(getErrorMessage(failure)); });
+    }
+    return () => { active = false; };
+  }, [section, user?.id]);
 
   const savePersonal = useMutation({
     mutationFn: () => profileApi.update({ name: name.trim(), email: email.trim(), currency: user?.currency ?? 'PHP' }),
@@ -56,8 +67,18 @@ export default function ProfileSettingScreen() {
   });
 
   const titles: Record<string, string> = {
-    personal: 'Personal information', accounts: 'Accounts', currency: 'Currency', notifications: 'Notifications', security: 'Security', help: 'Help center',
+    personal: 'Personal information', accounts: 'Accounts', currency: 'Currency', notifications: 'Notifications', 'budget-period': 'Budget period', security: 'Security', help: 'Help center',
   };
+
+  async function changeBudgetFrequency(frequency: BudgetFrequencyPreference) {
+    if (!user?.id) return;
+    try {
+      await setBudgetFrequencyPreference(user.id, frequency);
+      setBudgetFrequency(frequency);
+      setBudgetFrequencySaved(true);
+      setError('');
+    } catch (failure) { setError(getErrorMessage(failure)); }
+  }
 
   async function changeCurrency(currency: string) {
     if (!user || currency === user.currency) return;
@@ -116,6 +137,28 @@ export default function ProfileSettingScreen() {
           <PreferenceRow title="Daily reminder" detail="A gentle reminder to record today's activity" value={notifications.data.daily_reminder} onChange={(value) => updateNotifications.mutate({ daily_reminder: value })} />
           {notifications.data.daily_reminder ? <><Label>Reminder time (24-hour)</Label><Field value={notifications.data.reminder_time} onChangeText={(value) => { if (/^\d{0,2}:?\d{0,2}$/.test(value)) queryClient.setQueryData(['notification-preferences'], { ...notifications.data!, reminder_time: value }); }} onBlur={() => { const value = queryClient.getQueryData<NotificationPreferences>(['notification-preferences'])?.reminder_time ?? ''; if (/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) updateNotifications.mutate({ reminder_time: value }); else { setError('Enter reminder time as HH:MM, for example 20:00.'); void notifications.refetch(); } }} placeholder="20:00" keyboardType="numbers-and-punctuation" /></> : null}
         </View> : <InfoBox text={notifications.isError ? getErrorMessage(notifications.error) : 'Your preferences could not be loaded.'} />}
+      </>}
+
+      {section === 'budget-period' && <>
+        <Text className="mb-4 text-[11px] leading-4 text-muted">Choose how often your spending plan resets by default when you create a budget.</Text>
+        <View className="overflow-hidden rounded-[17px] bg-white px-4">
+          {budgetFrequencies.map((frequency, index) => {
+            const selected = budgetFrequency === frequency;
+            const descriptions: Record<BudgetFrequencyPreference, string> = {
+              daily: 'A fresh plan for each day',
+              weekly: 'A new plan every seven days',
+              monthly: 'Plan around your monthly expenses',
+              yearly: 'Set a longer-term annual limit',
+            };
+            return <Pressable key={frequency} accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={() => void changeBudgetFrequency(frequency)} className={`min-h-[68px] flex-row items-center gap-3 ${index < budgetFrequencies.length - 1 ? 'border-b border-[#F0F1F5]' : ''}`}>
+              <View className={`h-9 w-9 items-center justify-center rounded-xl ${selected ? 'bg-accent-light' : 'bg-background'}`}><CalendarDays size={16} color={selected ? colors.primary : colors.textSecondary} /></View>
+              <View className="flex-1"><Text className="text-[11px] font-semibold capitalize text-ink">{frequency}</Text><Text className="mt-1 text-[9px] text-muted">{descriptions[frequency]}</Text></View>
+              {selected ? <Check size={17} color={colors.primary} /> : <View className="h-[17px] w-[17px] rounded-full border border-[#D9DEEA]" />}
+            </Pressable>;
+          })}
+        </View>
+        <InfoBox text="This applies to new budgets on this device. Existing budgets keep their current dates and schedule." />
+        {budgetFrequencySaved && <Text accessibilityLiveRegion="polite" className="mt-3 text-center text-[10px] font-medium text-primary">Default budget period saved.</Text>}
       </>}
 
       {section === 'security' && <>

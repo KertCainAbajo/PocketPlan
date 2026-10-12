@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { router } from 'expo-router';
-import { Bell, ChevronRight, CircleHelp, Download, FileText, Fingerprint, Globe, Mail, ShieldCheck, UserRound, Wallet } from 'lucide-react-native';
+import { Bell, CalendarDays, ChevronRight, CircleHelp, Download, FileText, Fingerprint, Globe, Mail, ShieldCheck, UserRound, Wallet } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -98,6 +98,7 @@ export default function ProfileScreen() {
       <SectionTitle>Preferences &amp; security</SectionTitle>
       <SettingsGroup>
         <SettingsRow icon={<Bell size={15} color={colors.primary} />} title="Notifications" subtitle="Budget alerts and daily reminders" onPress={() => router.push({ pathname: '/profile-setting', params: { section: 'notifications' } })} />
+        <SettingsRow icon={<CalendarDays size={15} color={colors.primary} />} title="Budget period" subtitle="Choose daily, weekly, monthly or yearly" onPress={() => router.push({ pathname: '/profile-setting', params: { section: 'budget-period' } })} />
         <SettingsRow icon={<Fingerprint size={15} color={colors.primary} />} title="Biometric unlock" subtitle={`${biometricEnabled ? 'On' : 'Off'} · Use your fingerprint or face`} accessory={<Switch accessibilityLabel="Biometric unlock" value={biometricEnabled} onValueChange={(value) => void toggleBiometric(value)} disabled={busy} trackColor={{ false: '#D9DEEA', true: colors.primary }} thumbColor="white" />} />
         <SettingsRow icon={<ShieldCheck size={15} color={colors.primary} />} title="Security" subtitle="Password and signed-in devices" onPress={() => router.push({ pathname: '/profile-setting', params: { section: 'security' } })} />
         <SettingsRow icon={<Download size={15} color={colors.primary} />} title="Export your data" subtitle={busy ? 'Preparing your CSV…' : 'Download transactions as CSV'} onPress={() => void exportData()} last />
