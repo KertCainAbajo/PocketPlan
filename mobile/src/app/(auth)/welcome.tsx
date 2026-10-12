@@ -3,29 +3,30 @@ import { router } from 'expo-router';
 import {
   CheckCircle2,
   Gauge,
+  GraduationCap,
   ReceiptText,
   ShieldCheck,
-  TriangleAlert,
+  Sprout,
+  TrendingUp,
   Wallet,
-  XCircle,
   type LucideIcon,
 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View, type ViewStyle } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/brand-mark';
+import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { colors } from '@/theme/colors';
 
 const LIGHT_ACCENT = '#AEB8FF';
 
-const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: Wallet, title: 'Add your allowance', body: 'Daily, weekly, monthly or your own schedule.' },
-  { icon: ReceiptText, title: 'Log what you spend', body: 'Pick a category and you are done in seconds.' },
-  { icon: Gauge, title: 'Know your safe daily limit', body: 'Recalculated every day so your money lasts.' },
+const FEATURES: { icon: LucideIcon; label: string }[] = [
+  { icon: Wallet, label: 'Plan your allowance' },
+  { icon: ReceiptText, label: 'Log in seconds' },
+  { icon: Gauge, label: 'Daily safe limit' },
 ];
 
 export default function WelcomeScreen() {
@@ -35,33 +36,47 @@ export default function WelcomeScreen() {
     <View className="flex-1 bg-primary">
       <LinearGradient colors={['#2C477E', colors.primary, '#15244A']} locations={[0, 0.45, 1]} style={{ position: 'absolute', inset: 0 }} />
       {/* Soft decorative glows */}
-      <View pointerEvents="none" className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-accent opacity-[0.12]" />
-      <View pointerEvents="none" className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-accent opacity-[0.10]" />
-      <View pointerEvents="none" className="absolute -left-32 top-1/2 h-80 w-80 rounded-full bg-accent opacity-[0.07]" />
+      <View pointerEvents="none" className="absolute -right-32 -top-24 h-96 w-96 rounded-full bg-accent opacity-[0.14]" />
+      <View pointerEvents="none" className="absolute -left-40 top-[38%] h-80 w-80 rounded-full bg-accent opacity-[0.08]" />
 
       <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
         <ScrollView contentContainerClassName="grow px-6 pb-4 pt-4" bounces={false} showsVerticalScrollIndicator={false}>
-          <Animated.View entering={FadeInDown.duration(500)}>
-            <BrandMark inverted size={44} />
+          <Animated.View entering={FadeInDown.duration(500)} className="flex-row items-center justify-between">
+            <BrandMark inverted size={40} />
+            <View className="flex-row items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
+              <GraduationCap size={13} color={LIGHT_ACCENT} />
+              <Text className="text-[11px] font-semibold text-white/85">Made for students</Text>
+            </View>
           </Animated.View>
 
-          {/* Middle block is centred in whatever height the phone has. */}
-          <View className="flex-1 justify-center py-8">
-            <Animated.View entering={FadeInDown.delay(120).duration(600)}>
-              <Text className="text-[34px] font-extrabold leading-[40px] tracking-tight text-white">
+          {/* Product preview */}
+          <Animated.View entering={FadeInDown.delay(120).duration(600)} className="flex-1 justify-center py-6">
+            <BrandHero />
+          </Animated.View>
+
+          <View>
+            <Animated.View entering={FadeInDown.delay(220).duration(600)}>
+              <Text className="text-[32px] font-extrabold leading-[38px] tracking-tight text-white">
                 Know what you can <Text style={{ color: LIGHT_ACCENT }}>safely spend</Text> today.
               </Text>
-              <Text className="mt-3 text-base leading-6 text-white/70">
+              <Text className="mt-3 text-[15px] leading-[23px] text-white/70">
                 PocketPlan turns your allowance into a clear daily budget, so your money lasts until the next one.
               </Text>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(240).duration(600)} className="mt-8">
-              <HowItWorksCard />
+            <Animated.View entering={FadeInDown.delay(300).duration(600)} className="mt-5 flex-row gap-2">
+              {FEATURES.map((feature) => (
+                <View key={feature.label} className="flex-1 items-center rounded-2xl border border-white/10 bg-white/[0.07] px-2 py-3">
+                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-white/10">
+                    <feature.icon size={17} color={LIGHT_ACCENT} strokeWidth={2.2} />
+                  </View>
+                  <Text className="mt-2 text-center text-[11px] font-semibold leading-[14px] text-white/85">{feature.label}</Text>
+                </View>
+              ))}
             </Animated.View>
           </View>
 
-          <Animated.View entering={FadeInUp.delay(360).duration(600)}>
+          <Animated.View entering={FadeInUp.delay(380).duration(600)} className="mt-7">
             <Button label="Create free account" variant="inverse" onPress={() => router.push('/register')} />
             <Button label="I already have an account" variant="outline-inverse" onPress={() => router.push('/login')} className="mt-3" />
             <View className="mt-4 flex-row items-center justify-center gap-1.5">
@@ -75,80 +90,55 @@ export default function WelcomeScreen() {
   );
 }
 
-/** Three connected steps explaining the app, ending with the three budget statuses. */
-function HowItWorksCard() {
+/**
+ * Brand visual: the logo glowing inside soft rings, with three small status
+ * cards around it. Deliberately shows no amounts.
+ */
+function BrandHero() {
   return (
-    <View className="rounded-[28px] border border-white/15 bg-white/[0.08] p-5">
-      <View className="mb-4 flex-row items-center justify-between">
-        <Text className="text-[11px] font-bold uppercase tracking-widest text-white/60">How it works</Text>
-        <View className="rounded-full bg-white/10 px-2.5 py-1">
-          <Text className="text-[11px] font-semibold text-white/70">3 simple steps</Text>
-        </View>
-      </View>
+    <View className="h-[300px] items-center justify-center" accessible accessibilityLabel="PocketPlan: allowance planned, spending on track, savings growing.">
+      {/* Concentric rings */}
+      <View className="absolute h-[280px] w-[280px] rounded-full border border-white/[0.06]" />
+      <View className="absolute h-[216px] w-[216px] rounded-full border border-white/10 bg-white/[0.03]" />
+      <View className="absolute h-[156px] w-[156px] rounded-full bg-accent opacity-25" />
 
-      {STEPS.map((step, index) => (
-        <Step key={step.title} number={index + 1} icon={step.icon} title={step.title} body={step.body} last={index === STEPS.length - 1}>
-          {index === STEPS.length - 1 && (
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              <StatusChip label="Safe" icon={CheckCircle2} color={colors.positiveText} background={colors.positive} />
-              <StatusChip label="Watch" icon={TriangleAlert} color={colors.warningText} background={colors.warningBg} />
-              <StatusChip label="Over" icon={XCircle} color={colors.error} background={colors.errorBg} />
-            </View>
-          )}
-        </Step>
-      ))}
-    </View>
-  );
-}
-
-function Step({
-  number,
-  icon: Icon,
-  title,
-  body,
-  last,
-  children,
-}: {
-  number: number;
-  icon: LucideIcon;
-  title: string;
-  body: string;
-  last: boolean;
-  children?: ReactNode;
-}) {
-  return (
-    <View className="flex-row gap-4" accessible accessibilityLabel={`Step ${number}: ${title}. ${body}`}>
-      {/* Icon badge with a connector line down to the next step */}
-      <View className="items-center">
-        <LinearGradient
-          colors={[LIGHT_ACCENT, colors.accent]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={22} color={colors.card} strokeWidth={2.2} />
+      {/* Emblem */}
+      <View style={emblemShadow} className="h-[124px] w-[124px] overflow-hidden rounded-[36px] border border-white/20">
+        <LinearGradient colors={['#3A5BA8', '#1E3366']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Logo size={84} variant="dark" />
         </LinearGradient>
-        {!last && (
-          <LinearGradient colors={['rgba(174,184,255,0.6)', 'rgba(174,184,255,0.08)']} style={{ width: 2, flex: 1, minHeight: 18, marginVertical: 6 }} />
-        )}
       </View>
 
-      <View className={`flex-1 ${last ? '' : 'pb-5'}`}>
-        <Text className="text-[11px] font-bold uppercase tracking-widest text-[#AEB8FF]">Step {number}</Text>
-        <Text className="mt-0.5 text-base font-bold text-white">{title}</Text>
-        <Text className="mt-0.5 text-[13px] leading-5 text-white/60">{body}</Text>
-        {children}
-      </View>
+      <StatusCard Icon={CheckCircle2} tint={colors.positiveText} bg={colors.positive} title="Allowance planned" style={{ top: 14, left: 0 }} />
+      <StatusCard Icon={TrendingUp} tint={colors.accent} bg={colors.accentLight} title="Spending on track" style={{ top: 128, right: 0 }} />
+      <StatusCard Icon={Sprout} tint="#B45309" bg={colors.warningBg} title="Savings growing" style={{ bottom: 12, left: 18 }} />
     </View>
   );
 }
 
-function StatusChip({ label, icon: Icon, color, background }: { label: string; icon: LucideIcon; color: string; background: string }) {
+const emblemShadow = {
+  shadowColor: '#0B1430',
+  shadowOpacity: 0.45,
+  shadowRadius: 24,
+  shadowOffset: { width: 0, height: 12 },
+  elevation: 12,
+};
+
+const cardShadow = {
+  shadowColor: '#0B1430',
+  shadowOpacity: 0.3,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 8,
+};
+
+function StatusCard({ Icon, tint, bg, title, style }: { Icon: LucideIcon; tint: string; bg: string; title: string; style: ViewStyle }) {
   return (
-    <View className="flex-row items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: background }}>
-      <Icon size={13} color={color} strokeWidth={2.4} />
-      <Text className="text-xs font-bold" style={{ color }}>
-        {label}
-      </Text>
+    <View style={[cardShadow, { position: 'absolute' }, style]} className="flex-row items-center gap-2 rounded-2xl bg-white py-2 pl-2 pr-3.5">
+      <View className="h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: bg }}>
+        <Icon size={16} color={tint} strokeWidth={2.3} />
+      </View>
+      <Text className="text-[12px] font-bold text-ink">{title}</Text>
     </View>
   );
 }
