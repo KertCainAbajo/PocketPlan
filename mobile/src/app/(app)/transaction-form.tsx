@@ -42,11 +42,13 @@ const formatMoney = (amount: string | number | undefined, currency: string) => {
 
 export default function TransactionFormScreen() {
   useStatusBarStyle('dark');
-  const params = useLocalSearchParams<{ type?: string; id?: string }>();
+  const params = useLocalSearchParams<{ type?: string; id?: string; categoryId?: string }>();
   const type: 'expense' | 'income' = params.type === 'income' ? 'income' : 'expense';
   const user = useAuthStore((state) => state.user);
   const rawId = params.id ? Number(params.id) : undefined;
   const id = Number.isInteger(rawId) && Number(rawId) > 0 ? Number(rawId) : undefined;
+  const rawCategoryId = params.categoryId ? Number(params.categoryId) : undefined;
+  const categoryId = Number.isInteger(rawCategoryId) && Number(rawCategoryId) > 0 ? Number(rawCategoryId) : undefined;
   const detail = useQuery({
     queryKey: ['transaction', type, id],
     queryFn: () => transactionApi.get(type, id!),
@@ -70,7 +72,7 @@ export default function TransactionFormScreen() {
         {id && detail.isPending ? (
           <Text className="mt-8 text-center text-xs text-muted">Loading transaction…</Text>
         ) : (
-          <TransactionFields key={`${type}-${id ?? 'new'}`} initialType={type} id={id} initial={detail.data} timezone={user?.timezone} currency={user?.currency ?? 'USD'} />
+          <TransactionFields key={`${type}-${id ?? 'new'}-${categoryId ?? ''}`} initialType={type} id={id} initial={detail.data} initialCategoryId={categoryId} timezone={user?.timezone} currency={user?.currency ?? 'USD'} />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -81,12 +83,14 @@ function TransactionFields({
   initialType,
   id,
   initial,
+  initialCategoryId,
   timezone,
   currency,
 }: {
   initialType: 'expense' | 'income';
   id?: number;
   initial?: TransactionDetails;
+  initialCategoryId?: number;
   timezone?: string;
   currency: string;
 }) {
@@ -96,7 +100,7 @@ function TransactionFields({
   const [amount, setAmount] = useState(initial?.amount ?? '');
   const [date, setDate] = useState(initial?.spent_on ?? initial?.received_on ?? todayString(timezone));
   const [notes, setNotes] = useState(initial?.notes ?? '');
-  const [categoryId, setCategoryId] = useState<number | null>(initial?.category.id ?? null);
+  const [categoryId, setCategoryId] = useState<number | null>(initial?.category.id ?? initialCategoryId ?? null);
   const [paymentMethod, setPaymentMethod] = useState<(typeof paymentMethods)[number]>(
     paymentMethods.find((method) => method === initial?.payment_method) ?? 'cash',
   );
