@@ -186,6 +186,9 @@ export interface TransactionDetails {
   payment_method?: string | null;
   spent_on?: string;
   received_on?: string;
+  /** Optional time of day, HH:MM. */
+  spent_time?: string | null;
+  received_time?: string | null;
   budget_id?: number | null;
   recurring_income_id?: number | null;
   category: TransactionCategory;
@@ -201,6 +204,8 @@ export interface TransactionInput {
   payment_method?: string | null;
   spent_on?: string;
   received_on?: string;
+  spent_time?: string | null;
+  received_time?: string | null;
 }
 
 export interface Account {

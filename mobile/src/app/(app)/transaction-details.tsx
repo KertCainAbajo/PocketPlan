@@ -144,8 +144,12 @@ function TransactionContent({
   const expense = type === 'expense';
   const Icon = expense ? ShoppingBasket : BriefcaseBusiness;
   const date = expense ? detail.spent_on : detail.received_on;
+  const time = expense ? detail.spent_time : detail.received_time;
+  // "October 13, 2026 · 2:30 PM" when a time was recorded, the date alone otherwise.
   const formattedDate = date
-    ? new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(`${date}T12:00:00`))
+    ? new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric', ...(time ? { hour: 'numeric', minute: '2-digit' } : {}) })
+      .format(new Date(`${date}T${time ? `${time}:00` : '12:00:00'}`))
+      .replace(/,? at /, ' · ')
     : 'Not specified';
   const used = Math.min(100, Math.max(0, budget?.summary.percent_used ?? 0));
 

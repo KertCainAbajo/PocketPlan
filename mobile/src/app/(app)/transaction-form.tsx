@@ -6,7 +6,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Banknote,
-  CalendarDays,
+  CalendarClock,
+  ChevronDown,
   Check,
   CircleEllipsis,
   CreditCard,
@@ -17,11 +18,12 @@ import {
   Smartphone,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { showAlert } from '@/components/app-alert';
+import { OptionSheet, TimeSheet } from '@/components/bottom-sheet';
 import { CategoryIcon } from '@/components/category-icon';
 import { cardShadow, Field, SectionLabel, SettingsCard, SettingsHeader } from '@/components/settings-ui';
 import { FormBanner } from '@/components/ui/form-banner';
@@ -64,10 +66,34 @@ const todayString = (timezone?: string) => {
 const toDateString = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-const dayBefore = (date: string) => {
-  const value = new Date(`${date}T12:00:00`);
-  value.setDate(value.getDate() - 1);
-  return toDateString(value);
+/** Current time "HH:MM" in the student's timezone (falls back to the device clock). */
+const nowTime = (timezone?: string) => {
+  const now = new Date();
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+    const part = (type: string) => parts.find((value) => value.type === type)?.value ?? '00';
+    return `${part('hour')}:${part('minute')}`;
+  } catch {
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  }
+};
+
+/** "14:05" → "2:05 PM" in the device's format. */
+const formatTime = (time: string) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  const value = new Date();
+  value.setHours(hours, minutes, 0, 0);
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(value);
+};
+
+/** Latest selectable date: the end of today in the student's timezone, so today is never greyed out. */
+const endOfToday = (timezone?: string) => new Date(`${todayString(timezone)}T23:59:59`);
+
+/** A transaction today can't be later than right now. */
+const clampTime = (date: string, time: string, timezone?: string) => {
+  if (date !== todayString(timezone)) return time;
+  const now = nowTime(timezone);
+  return time > now ? now : time;
 };
 
 const formatMoney = (amount: string | number | undefined, currency: string, digits = 2) => {
@@ -138,10 +164,15 @@ function TransactionFields({
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category.id ?? initialCategoryId ?? null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(paymentMethods.find((method) => method === initial?.payment_method) ?? 'cash');
   const [accountId, setAccountId] = useState<number | null>(initial?.account_id ?? null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [time, setTime] = useState<string>(() => (initial?.spent_time ?? initial?.received_time ?? (initial ? '' : nowTime(timezone))));
+  const [showDate, setShowDate] = useState(false);
+  const [showTime, setShowTime] = useState(false);
+  const [showPayments, setShowPayments] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const theme = THEME[type];
+  const PaymentIcon = PAYMENT_STYLE[paymentMethod].Icon;
   const categories = useQuery({ queryKey: ['categories', type], queryFn: () => transactionApi.categories(type) });
   const dashboard = useQuery({ queryKey: ['dashboard'], queryFn: dashboardApi.get });
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list });
@@ -150,12 +181,11 @@ function TransactionFields({
   const selectedCategory = categories.data?.find((category) => category.id === selectedCategoryId);
   const budgetLimit = type === 'expense' ? dashboard.data?.budget?.category_limits.find((limit) => limit.category_id === selectedCategoryId) : undefined;
   const categoryLeft = budgetLimit ? Number(budgetLimit.limit) - Number(budgetLimit.spent) : undefined;
-  const today = todayString(timezone);
-  const yesterday = dayBefore(today);
   const dateValue = new Date(`${date}T12:00:00`);
   const displayDate = Number.isNaN(dateValue.getTime())
     ? date
-    : new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(dateValue);
+    : new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(dateValue);
+  const displayTime = time ? formatTime(time) : '';
   const invalidAmount = !amount.trim() || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || !/^\d+(\.\d{1,2})?$/.test(amount.trim());
   const validationMessage = invalidAmount
     ? 'Enter an amount above zero.'
@@ -176,7 +206,9 @@ function TransactionFields({
         amount: amount.trim(),
         description: description.trim(),
         notes: notes.trim() || null,
-        ...(type === 'expense' ? { spent_on: date, payment_method: paymentMethod } : { received_on: date }),
+        ...(type === 'expense'
+          ? { spent_on: date, spent_time: time || null, payment_method: paymentMethod }
+          : { received_on: date, received_time: time || null }),
       };
       return transactionApi.save(type, input, id);
     },
@@ -291,33 +323,23 @@ function TransactionFields({
 
       {/* Category */}
       <SectionLabel>Category</SectionLabel>
-      {categories.isPending ? (
-        <SettingsCard className="items-center p-6"><ActivityIndicator color={colors.accent} /></SettingsCard>
-      ) : categories.isError ? (
+      {categories.isError ? (
         <Pressable onPress={() => void categories.refetch()}><FormBanner message="Couldn’t load categories. Tap to retry." /></Pressable>
-      ) : categories.data?.length ? (
-        <View className="flex-row flex-wrap gap-2.5">
-          {categories.data.map((category) => {
-            const selected = category.id === selectedCategoryId;
-            return (
-              <Pressable
-                key={category.id}
-                accessibilityRole="radio"
-                accessibilityLabel={category.name}
-                accessibilityState={{ checked: selected }}
-                onPress={() => { setCategoryId(category.id); save.reset(); }}
-                style={[cardShadow, { width: '31%' }]}
-                className={`items-center rounded-2xl border-2 bg-card px-1.5 py-3 ${selected ? (type === 'expense' ? 'border-accent' : 'border-positive-text') : 'border-transparent'}`}>
-                <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: selected ? theme.tintBg : colors.background }}>
-                  <CategoryIcon icon={category.icon} size={19} color={selected ? theme.tint : colors.textSecondary} strokeWidth={2} />
-                </View>
-                <Text numberOfLines={1} className={`mt-1.5 text-center text-[11px] ${selected ? 'font-bold text-ink' : 'font-semibold text-muted'}`}>{category.name}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : (
+      ) : !categories.isPending && !categories.data?.length ? (
         <FormBanner message={`No ${type} categories are available yet.`} tone="info" />
+      ) : (
+        <SelectField
+          label="Category"
+          onPress={() => setShowCategories(true)}
+          loading={categories.isPending}
+          leading={
+            <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: theme.tintBg }}>
+              <CategoryIcon icon={selectedCategory?.icon} size={19} color={theme.tint} strokeWidth={2} />
+            </View>
+          }
+          title={selectedCategory?.name ?? 'Choose a category'}
+          subtitle={type === 'expense' ? 'What kind of spending is this?' : 'What kind of income is this?'}
+        />
       )}
       {budgetLimit && categoryLeft !== undefined && (
         <View className={`mt-3 flex-row items-center justify-between rounded-2xl px-4 py-3 ${afterThis !== undefined && afterThis < 0 ? 'bg-error-bg' : 'bg-accent-light'}`}>
@@ -335,29 +357,34 @@ function TransactionFields({
       )}
 
       {/* When */}
-      <SectionLabel>Date</SectionLabel>
-      <View className="flex-row gap-2.5">
-        <Chip label="Today" selected={date === today} onPress={() => setDate(today)} />
-        <Chip label="Yesterday" selected={date === yesterday} onPress={() => setDate(yesterday)} />
-        <Chip
-          label={date !== today && date !== yesterday ? displayDate : 'Pick a date'}
-          Icon={CalendarDays}
-          selected={date !== today && date !== yesterday}
-          onPress={() => setShowDatePicker(true)}
-          grow
-        />
-      </View>
+      <SectionLabel>Date &amp; time</SectionLabel>
+      <SelectField
+        label="Date and time"
+        onPress={() => setShowDate(true)}
+        leading={
+          <View className="h-10 w-10 items-center justify-center rounded-xl bg-accent-light">
+            <CalendarClock size={19} color={colors.accent} strokeWidth={2} />
+          </View>
+        }
+        title={displayDate}
+        subtitle={displayTime ? `at ${displayTime}` : 'Tap to set a date and time'}
+      />
 
       {/* How (expenses only) */}
       {type === 'expense' && (
         <>
           <SectionLabel>Paid with</SectionLabel>
-          <View className="flex-row flex-wrap gap-2">
-            {paymentMethods.map((method) => {
-              const style = PAYMENT_STYLE[method];
-              return <Chip key={method} label={style.label} Icon={style.Icon} selected={method === paymentMethod} onPress={() => setPaymentMethod(method)} />;
-            })}
-          </View>
+          <SelectField
+            label="Payment method"
+            onPress={() => setShowPayments(true)}
+            leading={
+              <View className="h-10 w-10 items-center justify-center rounded-xl bg-accent-light">
+                <PaymentIcon size={19} color={colors.accent} strokeWidth={2} />
+              </View>
+            }
+            title={PAYMENT_STYLE[paymentMethod].label}
+            subtitle="How did you pay?"
+          />
         </>
       )}
 
@@ -434,31 +461,90 @@ function TransactionFields({
         </Text>
       </Pressable>
 
-      {showDatePicker && (
+      {showDate && (
         <DateTimePicker
           value={Number.isNaN(dateValue.getTime()) ? new Date() : dateValue}
-          onValueChange={(_event, selectedDate) => { setShowDatePicker(false); setDate(toDateString(selectedDate)); }}
-          onDismiss={() => setShowDatePicker(false)}
           mode="date"
           presentation="dialog"
-          maximumDate={new Date()}
+          maximumDate={endOfToday(timezone)}
           accentColor={colors.primary}
+          onValueChange={(_event, selected) => {
+            setShowDate(false);
+            setDate(toDateString(selected));
+            setShowTime(true);
+          }}
+          onDismiss={() => setShowDate(false)}
         />
       )}
+
+      <TimeSheet
+        visible={showTime}
+        value={time || nowTime(timezone)}
+        onClose={() => setShowTime(false)}
+        onConfirm={(value) => { setTime(clampTime(date, value, timezone)); setShowTime(false); }}
+      />
+
+      <OptionSheet
+        visible={showCategories}
+        title="Choose a category"
+        subtitle={type === 'expense' ? 'Where did this money go?' : 'Where did this money come from?'}
+        accent={theme.tint}
+        selected={selectedCategoryId}
+        options={(categories.data ?? []).map((category) => ({
+          key: category.id,
+          label: category.name,
+          icon: (active) => (
+            <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: active ? theme.tintBg : colors.background }}>
+              <CategoryIcon icon={category.icon} size={20} color={active ? theme.tint : colors.textSecondary} strokeWidth={2} />
+            </View>
+          ),
+        }))}
+        onClose={() => setShowCategories(false)}
+        onSelect={(key) => { setCategoryId(key); setShowCategories(false); save.reset(); }}
+      />
+
+      <OptionSheet
+        visible={showPayments}
+        title="Paid with"
+        subtitle="How did you pay for this?"
+        selected={paymentMethod}
+        options={paymentMethods.map((method) => {
+          const { label, Icon } = PAYMENT_STYLE[method];
+          return {
+            key: method,
+            label,
+            icon: (active: boolean) => (
+              <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: active ? colors.accentLight : colors.background }}>
+                <Icon size={20} color={active ? colors.accent : colors.textSecondary} strokeWidth={2} />
+              </View>
+            ),
+          };
+        })}
+        onClose={() => setShowPayments(false)}
+        onSelect={(key) => { setPaymentMethod(key); setShowPayments(false); }}
+      />
     </>
   );
 }
 
-function Chip({ label, Icon, selected, onPress, grow = false }: { label: string; Icon?: LucideIcon; selected: boolean; onPress: () => void; grow?: boolean }) {
+/** A tappable field that looks like an input and opens a picker. */
+function SelectField({ label, leading, title, subtitle, onPress, loading = false }: { label: string; leading: ReactNode; title: string; subtitle: string; onPress: () => void; loading?: boolean }) {
   return (
     <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${title}. Change`}
       onPress={onPress}
-      style={selected ? undefined : cardShadow}
-      className={`h-11 flex-row items-center justify-center gap-1.5 rounded-full px-4 ${grow ? 'flex-1' : ''} ${selected ? 'bg-primary' : 'bg-card'}`}>
-      {Icon ? <Icon size={15} color={selected ? '#FFFFFF' : colors.textSecondary} /> : null}
-      <Text numberOfLines={1} className={`text-[13px] font-semibold ${selected ? 'text-white' : 'text-ink'}`}>{label}</Text>
+      disabled={loading}
+      style={cardShadow}
+      className="flex-row items-center rounded-2xl bg-card p-3.5 active:opacity-80">
+      {loading ? <View className="h-10 w-10 items-center justify-center"><ActivityIndicator color={colors.accent} /></View> : leading}
+      <View className="ml-3 flex-1">
+        <Text numberOfLines={1} className="text-[15px] font-bold text-ink">{loading ? 'Loading…' : title}</Text>
+        <Text numberOfLines={1} className="mt-0.5 text-[12px] text-muted">{subtitle}</Text>
+      </View>
+      <View className="h-8 w-8 items-center justify-center rounded-full bg-background">
+        <ChevronDown size={17} color={colors.primary} />
+      </View>
     </Pressable>
   );
 }
