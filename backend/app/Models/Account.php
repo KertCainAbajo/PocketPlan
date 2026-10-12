@@ -52,8 +52,16 @@ class Account extends Model
             ->minus(Money::sum($this->expenses()->toBase()));
 
         if ($this->is_default) {
-            $balance = $balance->minus(Money::sum(SavingsContribution::query()->where('user_id', $this->user_id)->toBase()));
+            $balance = $balance->minus(Money::sum(SavingsContribution::query()
+                ->where('user_id', $this->user_id)
+                ->where(fn ($query) => $query->where('account_id', $this->id)->orWhereNull('account_id'))
+                ->toBase()));
             $balance = $balance->minus(Money::sum(BudgetRollover::query()->where('user_id', $this->user_id)->toBase()));
+        } else {
+            $balance = $balance->minus(Money::sum(SavingsContribution::query()
+                ->where('user_id', $this->user_id)
+                ->where('account_id', $this->id)
+                ->toBase()));
         }
 
         return $balance;

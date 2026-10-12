@@ -14,8 +14,10 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $user_id
  * @property string $name
+ * @property string $icon
  * @property string $target_amount
  * @property Carbon|null $target_date
+ * @property bool $reminder_enabled
  * @property SavingsGoalStatus $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -27,8 +29,10 @@ class SavingsGoal extends Model
 
     protected $fillable = [
         'name',
+        'icon',
         'target_amount',
         'target_date',
+        'reminder_enabled',
     ];
 
     /** @var array<string, mixed> */
@@ -44,6 +48,7 @@ class SavingsGoal extends Model
         return [
             'target_amount' => 'decimal:2',
             'target_date' => 'date',
+            'reminder_enabled' => 'boolean',
             'status' => SavingsGoalStatus::class,
         ];
     }

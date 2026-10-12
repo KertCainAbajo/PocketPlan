@@ -71,6 +71,71 @@ export const savingsApi = {
   },
 };
 
+export interface SavingsGoal {
+  id: number;
+  name: string;
+  icon: 'laptop' | 'home' | 'travel' | 'emergency' | 'education';
+  target_amount: string;
+  saved_amount: string;
+  target_date: string | null;
+  reminder_enabled: boolean;
+  status: 'active' | 'achieved' | 'archived';
+  contribution_count: number;
+  last_contributed_on: string | null;
+}
+
+export interface SavingsGoalsOverview {
+  currency: string;
+  total_saved: string;
+  combined_target: string;
+  active_count: number;
+  month_added: string;
+  month_contributions: number;
+  goals: SavingsGoal[];
+}
+
+export interface SavingsGoalDetails {
+  goal: Pick<SavingsGoal, 'id' | 'name' | 'icon' | 'target_amount' | 'saved_amount' | 'target_date' | 'reminder_enabled'> & {
+    remaining_amount: string;
+    progress_percent: number;
+  };
+  monthly_progress: { label: string; date_label: string; amount: string }[];
+  contributions: { id: number; amount: string; contributed_on: string; note: string | null; account_name: string }[];
+}
+
+export const savingsGoalsApi = {
+  async list(): Promise<SavingsGoalsOverview> {
+    const { data } = await api.get<{ data: SavingsGoalsOverview }>('/savings-goals');
+    return data.data;
+  },
+  async create(input: {
+    name: string;
+    icon: SavingsGoal['icon'];
+    target_amount: string;
+    starting_amount: string;
+    target_date?: string;
+    reminder_enabled: boolean;
+  }): Promise<void> {
+    await api.post('/savings-goals', input);
+  },
+  async update(goalId: number, input: {
+    name: string;
+    icon: SavingsGoal['icon'];
+    target_amount: string;
+    target_date?: string | null;
+    reminder_enabled: boolean;
+  }): Promise<void> {
+    await api.put(`/savings-goals/${goalId}`, input);
+  },
+  async get(goalId: number): Promise<SavingsGoalDetails> {
+    const { data } = await api.get<{ data: SavingsGoalDetails }>(`/savings-goals/${goalId}`);
+    return data.data;
+  },
+  async contribute(goalId: number, input: { amount: string; account_id: number; note?: string }): Promise<void> {
+    await api.post(`/savings-goals/${goalId}/contributions`, input);
+  },
+};
+
 export interface ActivityTransaction extends DashboardTransaction {
   account_id?: number | null;
   category: { id: number; name: string; icon: string; type?: string };

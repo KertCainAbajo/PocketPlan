@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $savings_goal_id
  * @property int $user_id
+ * @property int|null $account_id
  * @property string $amount
  * @property Carbon $contributed_on
  * @property string|null $note
@@ -25,6 +26,7 @@ class SavingsContribution extends Model
         'amount',
         'contributed_on',
         'note',
+        'account_id',
     ];
 
     /**
@@ -42,5 +44,17 @@ class SavingsContribution extends Model
     public function goal(): BelongsTo
     {
         return $this->belongsTo(SavingsGoal::class, 'savings_goal_id');
+    }
+
+    /** @return BelongsTo<Account, $this> */
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

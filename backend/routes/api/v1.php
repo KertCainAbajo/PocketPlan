@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RecurringIncomeController;
 use App\Http\Controllers\Api\V1\SavingsController;
+use App\Http\Controllers\Api\V1\SavingsGoalController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -55,6 +56,11 @@ Route::middleware(['auth:sanctum', 'active', 'student', 'throttle:api'])->group(
     Route::post('onboarding', OnboardingController::class)->name('onboarding');
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('savings', SavingsController::class)->name('savings.index');
+    Route::get('savings-goals', [SavingsGoalController::class, 'index'])->name('savings-goals.index');
+    Route::post('savings-goals', [SavingsGoalController::class, 'store'])->name('savings-goals.store');
+    Route::get('savings-goals/{goal}', [SavingsGoalController::class, 'show'])->whereNumber('goal')->name('savings-goals.show');
+    Route::put('savings-goals/{goal}', [SavingsGoalController::class, 'update'])->whereNumber('goal')->name('savings-goals.update');
+    Route::post('savings-goals/{goal}/contributions', [SavingsGoalController::class, 'contribute'])->whereNumber('goal')->name('savings-goals.contributions.store');
     Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index');
     Route::post('accounts', [AccountController::class, 'store'])->name('accounts.store');
 

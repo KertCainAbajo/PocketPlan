@@ -15,7 +15,7 @@ class SavingsController extends Controller
     public function __invoke(Request $request, AllowancePeriodManager $allowances, RecurringIncomeGenerator $recurring): JsonResponse
     {
         $user = $request->user();
-        $this->validate($request, ['year' => ['nullable', 'integer', 'min:2000', 'max:'.($user->today()->year)]]);
+        $request->validate(['year' => ['nullable', 'integer', 'min:2000', 'max:'.$user->today()->year]]);
         $recurring->generateForUser($user);
         $allowances->ensureCurrent($user);
 
