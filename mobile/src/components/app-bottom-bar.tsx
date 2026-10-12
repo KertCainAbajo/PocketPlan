@@ -16,7 +16,7 @@ const tabs = [
 
 export function AppBottomBar({ active }: { active: AppTab }) {
   return <View className="flex-row items-center border-t border-[#E9ECF3] bg-white px-2 pb-1 pt-2">
-    {tabs.map((tab) => <TabItem key={tab.key} {...tab} active={active === tab.key} />)}
+    {tabs.map(({ key, ...tab }) => <TabItem key={key} {...tab} active={active === key} />)}
   </View>;
 }
 
