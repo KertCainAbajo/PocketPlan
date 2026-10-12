@@ -12,7 +12,7 @@ export interface NotificationPreferences {
 }
 
 export const profileApi = {
-  async update(input: Pick<User, 'name' | 'email' | 'currency'>): Promise<User> {
+  async update(input: Pick<User, 'name' | 'email' | 'currency'> & { timezone?: string }): Promise<User> {
     const { data } = await api.patch<{ data: User }>('/me', input);
     return data.data;
   },
@@ -21,6 +21,10 @@ export const profileApi = {
   },
   async revokeOtherSessions(): Promise<void> {
     await api.delete('/me/sessions');
+  },
+  /** Permanently deletes the account and all of its data. */
+  async deleteAccount(currentPassword: string): Promise<void> {
+    await api.delete('/me', { data: { current_password: currentPassword } });
   },
   async notifications(): Promise<NotificationPreferences> {
     const { data } = await api.get<{ data: NotificationPreferences }>('/notification-preferences');

@@ -221,6 +221,14 @@ export const accountApi = {
     const { data } = await api.post<{ data: Account }>('/accounts', input);
     return data.data;
   },
+  async update(id: number, input: { name: string; type: Account['type']; opening_balance?: string }): Promise<Account> {
+    const { data } = await api.patch<{ data: Account }>(`/accounts/${id}`, input);
+    return data.data;
+  },
+  /** Transactions on the deleted account move to the default account. */
+  async remove(id: number): Promise<void> {
+    await api.delete(`/accounts/${id}`);
+  },
 };
 
 export interface BudgetItem {

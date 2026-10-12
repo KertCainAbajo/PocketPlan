@@ -1,9 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ArrowUpRight, Bell, CalendarDays, ChartNoAxesColumn, Check, ChevronRight, CircleCheck, Ellipsis, Flag, GraduationCap, House, Laptop, Mountain, Plane, Plus, ShieldCheck, Sparkles, Sprout, Sun, TrendingUp, WalletCards } from 'lucide-react-native';
+import {
+  Bell,
+  CalendarDays,
+  ChartNoAxesColumn,
+  Check,
+  Ellipsis,
+  Flag,
+  GraduationCap,
+  House,
+  Laptop,
+  Mountain,
+  Plane,
+  Plus,
+  ShieldCheck,
+  Sparkles,
+  Sprout,
+  Sun,
+  Target,
+  TrendingUp,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Polygon } from 'react-native-svg';
 
@@ -18,6 +38,17 @@ import { colors } from '@/theme/colors';
 
 type GoalFilter = 'all' | 'active' | 'achieved';
 
+const LIGHT_ACCENT = '#AEB8FF';
+
+/** Soft, navy-tinted elevation shared by the floating cards. */
+const cardShadow: ViewStyle = {
+  shadowColor: colors.primary,
+  shadowOpacity: 0.08,
+  shadowRadius: 18,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 3,
+};
+
 const money = (amount: string | number | undefined, currency: string) => {
   const value = Number(amount);
   if (!Number.isFinite(value)) return `— ${currency}`;
@@ -25,8 +56,20 @@ const money = (amount: string | number | undefined, currency: string) => {
   catch { return `${currency} ${value.toFixed(2)}`; }
 };
 
-const iconFor = (icon: SavingsGoal['icon']) => icon === 'home' ? House : icon === 'travel' ? Plane : icon === 'emergency' ? ShieldCheck : icon === 'education' ? GraduationCap : Laptop;
-const goalType = (icon: SavingsGoal['icon']) => ({ emergency: 'Safe cushion', travel: 'Leisure', education: 'Education', home: 'Home', laptop: 'Personal goal' })[icon];
+/** Each goal type has its own icon and colour so goals are easy to tell apart. */
+const GOAL_STYLE: Record<SavingsGoal['icon'], { Icon: LucideIcon; label: string; color: string }> = {
+  laptop: { Icon: Laptop, label: 'Personal goal', color: '#6C7CF7' },
+  home: { Icon: House, label: 'Home', color: '#F59E0B' },
+  travel: { Icon: Plane, label: 'Leisure', color: '#0EA5E9' },
+  emergency: { Icon: ShieldCheck, label: 'Safe cushion', color: '#10B981' },
+  education: { Icon: GraduationCap, label: 'Education', color: '#8B5CF6' },
+};
+
+const monthsUntil = (date: string) => {
+  const target = new Date(`${date}T12:00:00`);
+  const now = new Date();
+  return Math.max(1, (target.getFullYear() - now.getFullYear()) * 12 + target.getMonth() - now.getMonth());
+};
 
 export default function SavingsScreen() {
   useStatusBarStyle('dark');
@@ -37,18 +80,16 @@ export default function SavingsScreen() {
   const allGoals = goals.data?.goals ?? [];
   const activeGoals = allGoals.filter((goal) => goal.status === 'active');
   const completedGoals = allGoals.filter((goal) => goal.status === 'achieved');
-  const visibleGoals = useMemo(() => filter === 'all' ? allGoals : filter === 'active' ? activeGoals : completedGoals, [allGoals, activeGoals, completedGoals, filter]);
+  const visibleGoals = filter === 'all' ? allGoals : filter === 'active' ? activeGoals : completedGoals;
   const activeCount = goals.data?.active_count ?? activeGoals.length;
   const completedCount = completedGoals.length;
+  const goalCurrency = goals.data?.currency ?? currency;
   const saved = Number(goals.data?.total_saved ?? 0);
   const combinedTarget = Number(goals.data?.combined_target ?? 0);
   const overallProgress = combinedTarget > 0 ? Math.min(100, saved / combinedTarget * 100) : 0;
   const monthlyPlan = activeGoals.reduce((total, goal) => {
     const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.saved_amount));
-    const target = goal.target_date ? new Date(`${goal.target_date}T12:00:00`) : null;
-    const now = new Date();
-    const months = target ? Math.max(1, (target.getFullYear() - now.getFullYear()) * 12 + target.getMonth() - now.getMonth()) : 12;
-    return total + remaining / months;
+    return total + remaining / (goal.target_date ? monthsUntil(goal.target_date) : 12);
   }, 0);
   const initials = user?.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'PP';
 
@@ -58,55 +99,207 @@ export default function SavingsScreen() {
   function openNotifications() { router.push({ pathname: '/profile-setting', params: { section: 'notifications' } }); }
   function openProfile() { router.navigate('/profile'); }
 
-  return <SafeAreaView className="flex-1 bg-[#F4F6FC]" edges={['top', 'bottom']}>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="grow px-3 pb-4" refreshControl={<RefreshControl refreshing={goals.isRefetching} onRefresh={() => void goals.refetch()} tintColor={colors.accent} />}>
-      <View className="flex-row items-center justify-between rounded-b-[15px] bg-white px-3 py-2.5">
-        <Pressable accessibilityRole="button" accessibilityLabel="PocketPlan home" onPress={() => router.navigate('/')} className="flex-row items-center gap-2"><BrandMark size={25} /><View className="ml-0.5 border-l border-[#E6E9F0] pl-2"><Text className="text-[8px] font-semibold text-muted">Savings</Text></View></Pressable>
-        <View className="flex-row items-center gap-2.5"><Pressable accessibilityRole="button" accessibilityLabel="Notification settings" onPress={openNotifications} className="relative h-9 w-9 items-center justify-center rounded-xl bg-[#F4F6FC]"><Bell size={16} color={colors.primary} /><View className="absolute right-[8px] top-[7px] h-1.5 w-1.5 rounded-full bg-[#7584FF]" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={openProfile} className="h-8 w-8 items-center justify-center rounded-full border-2 border-[#E8ECFF] bg-[#DDE5FF]"><Text className="text-[9px] font-bold text-primary">{initials}</Text></Pressable></View>
+  return (
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="grow px-5 pb-8"
+        refreshControl={<RefreshControl refreshing={goals.isRefetching} onRefresh={() => void goals.refetch()} tintColor={colors.accent} />}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between pt-2">
+          <Pressable accessibilityRole="button" accessibilityLabel="PocketPlan home" onPress={() => router.navigate('/')}>
+            <BrandMark size={34} />
+          </Pressable>
+          <View className="flex-row items-center gap-2.5">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Notification settings"
+              onPress={openNotifications}
+              style={cardShadow}
+              className="h-11 w-11 items-center justify-center rounded-2xl bg-card active:bg-accent-light">
+              <Bell size={19} color={colors.primary} strokeWidth={1.9} />
+              <View className="absolute right-[11px] top-[10px] h-2 w-2 rounded-full border border-white bg-accent" />
+            </Pressable>
+            <View className="overflow-hidden rounded-full">
+              <LinearGradient colors={[colors.accent, colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={openProfile} className="h-11 w-11 items-center justify-center active:opacity-80">
+                  <Text className="text-[14px] font-bold text-white">{initials}</Text>
+                </Pressable>
+              </LinearGradient>
+            </View>
+          </View>
+        </View>
+
+        <View className="mt-5">
+          <Text className="text-[26px] font-extrabold tracking-tight text-ink">Savings goals</Text>
+          <Text className="mt-0.5 text-[13px] text-muted">Give every peso you save a purpose.</Text>
+        </View>
+
+        {goals.isError && <View className="mt-4"><FormBanner message={getErrorMessage(goals.error)} /></View>}
+
+        {/* Hero */}
+        <View className="mt-5 overflow-hidden rounded-[30px]">
+          <LinearGradient colors={['#34539A', colors.primary, '#16254A']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 20 }}>
+            <View pointerEvents="none" className="absolute -right-12 -top-16 h-52 w-52 rounded-full bg-accent opacity-25" />
+            <View pointerEvents="none" className="absolute -bottom-24 -left-16 h-52 w-52 rounded-full bg-white opacity-[0.04]" />
+
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[12px] font-semibold uppercase tracking-[1px] text-white/60">Total saved</Text>
+              <View className="flex-row items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+                <TrendingUp size={12} color="#4ADE80" strokeWidth={2.4} />
+                <Text className="text-[11px] font-bold text-white">+{money(goals.data?.month_added ?? 0, goalCurrency)} this month</Text>
+              </View>
+            </View>
+
+            <View className="mt-3 flex-row items-center">
+              <View className="flex-1 pr-3">
+                <Text numberOfLines={1} adjustsFontSizeToFit className="text-[38px] font-extrabold tracking-tight text-white">
+                  {goals.isPending ? '—' : money(goals.data?.total_saved, goalCurrency)}
+                </Text>
+                <Text className="mt-0.5 text-[13px] leading-[18px] text-white/70">
+                  {activeCount} active {activeCount === 1 ? 'goal' : 'goals'} · {overallProgress.toFixed(1)}% of your combined target
+                </Text>
+              </View>
+              <ProgressRing percent={overallProgress} />
+            </View>
+
+            <View className="mt-5 flex-row rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-3">
+              <HeroStat Icon={Target} label="Combined target" value={money(goals.data?.combined_target ?? 0, goalCurrency)} />
+              <View className="mx-2 w-px bg-white/10" />
+              <HeroStat Icon={CalendarDays} label="Monthly plan" value={`${money(monthlyPlan, goalCurrency)}/mo`} />
+              <View className="mx-2 w-px bg-white/10" />
+              <HeroStat Icon={Check} label="Completed" value={String(completedCount)} />
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Actions */}
+        <View className="mt-4 flex-row gap-2.5">
+          <Pressable
+            accessibilityRole="button"
+            onPress={openCreate}
+            style={[cardShadow, { shadowOpacity: 0.25 }]}
+            className="h-[52px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-primary active:opacity-80">
+            <Plus size={18} color="white" strokeWidth={2.4} />
+            <Text className="text-[14px] font-bold text-white">New goal</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Goal summary"
+            onPress={() => setFilter('all')}
+            style={cardShadow}
+            className="h-[52px] w-[52px] items-center justify-center rounded-2xl bg-card active:bg-accent-light">
+            <ChartNoAxesColumn size={19} color={colors.primary} />
+          </Pressable>
+        </View>
+
+        {/* Filters */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 mt-4" contentContainerClassName="gap-2 px-5">
+          <FilterChip label="All" count={allGoals.length} selected={filter === 'all'} onPress={() => setFilter('all')} />
+          <FilterChip label="In progress" count={activeCount} selected={filter === 'active'} onPress={() => setFilter('active')} />
+          <FilterChip label="Completed" count={completedCount} selected={filter === 'achieved'} onPress={() => setFilter('achieved')} />
+        </ScrollView>
+
+        {goals.isPending ? (
+          <View className="mt-4 gap-3">
+            {[0, 1].map((i) => <View key={i} className="h-[170px] rounded-3xl bg-[#E9ECF4]" />)}
+          </View>
+        ) : visibleGoals.length ? (
+          visibleGoals.map((goal) => (
+            <GoalCard key={goal.id} goal={goal} currency={goalCurrency} onOpen={() => openGoal(goal.id)} onContribute={() => openContribution(goal.id)} />
+          ))
+        ) : (
+          <EmptyGoals completed={filter === 'achieved'} onCreate={openCreate} />
+        )}
+
+        {/* Momentum */}
+        <View className="mt-5 overflow-hidden rounded-3xl">
+          <LinearGradient colors={['#EEF0FF', '#E2E6FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+            <View className="mr-3 h-11 w-11 items-center justify-center rounded-2xl bg-accent">
+              <Sparkles size={19} color="white" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[14px] font-bold text-primary">Your savings momentum</Text>
+              <Text className="mt-0.5 text-[12px] leading-[17px] text-primary/70">
+                You saved {money(goals.data?.month_added ?? 0, goalCurrency)} across your goals this month. Keep going, small steps add up.
+              </Text>
+            </View>
+          </LinearGradient>
+        </View>
+      </ScrollView>
+
+      <AppBottomBar active="savings" />
+    </SafeAreaView>
+  );
+}
+
+/** Circular gauge of overall progress toward all goals combined. */
+function ProgressRing({ percent, size = 84, stroke = 8 }: { percent: number; size?: number; stroke?: number }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - Math.min(100, Math.max(0, percent)) / 100);
+
+  return (
+    <View style={{ width: size, height: size }} accessible accessibilityLabel={`${Math.round(percent)} percent of combined target saved`}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.14)" strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#4ADE80"
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={offset}
+        />
+      </Svg>
+      <View className="absolute inset-0 items-center justify-center">
+        <Text className="text-base font-extrabold text-white">{Math.round(percent)}%</Text>
+        <Text className="text-[10px] font-medium text-white/60">saved</Text>
       </View>
+    </View>
+  );
+}
 
-      {goals.isError && <View className="mt-2"><FormBanner message={getErrorMessage(goals.error)} /></View>}
-
-      <LinearGradient colors={['#1B3163', '#213D78', '#294987']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="mt-3 overflow-hidden rounded-[20px]" style={{ borderRadius: 20, overflow: 'hidden', marginTop: 12, paddingHorizontal: 18, paddingTop: 17, paddingBottom: 18 }}>
-        <View className="flex-row items-center justify-between">
-          <Text className="text-[12px] font-semibold text-white">Total accumulated</Text>
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-white/10"><WalletCards size={18} color="#E6EBFF" /></View>
-        </View>
-        <Text adjustsFontSizeToFit numberOfLines={1} className="mt-2 text-[30px] font-extrabold leading-[36px] tracking-tight text-white">{money(goals.data?.total_saved, goals.data?.currency ?? currency)}</Text>
-        <Text numberOfLines={1} className="mt-1 text-[9px] font-medium text-white/75">{activeCount} active goals · {overallProgress.toFixed(1)}% of combined target</Text>
-
-        <View className="mt-4 flex-row border-t border-white/15 pt-3.5">
-          <View className="min-w-0 flex-1 pr-3"><Text className="text-[9px] font-medium text-white/65">Target combined</Text><Text numberOfLines={1} adjustsFontSizeToFit className="mt-1.5 text-[13px] font-bold text-white">{money(goals.data?.combined_target, goals.data?.currency ?? currency)}</Text></View>
-          <View className="my-0.5 w-px bg-white/15" />
-          <View className="min-w-0 flex-1 pl-3"><Text className="text-[9px] font-medium text-white/65">Monthly plan</Text><Text numberOfLines={1} adjustsFontSizeToFit className="mt-1.5 text-[13px] font-bold text-white">{money(monthlyPlan, goals.data?.currency ?? currency)}<Text className="text-[8px] font-medium text-white/70"> / mo</Text></Text></View>
-        </View>
-      </LinearGradient>
-
-      <View className="mt-2.5 flex-row gap-2"><Pressable accessibilityRole="button" onPress={openCreate} className="h-[36px] flex-1 flex-row items-center justify-center gap-1.5 rounded-[9px] bg-[#5869E8] shadow-sm shadow-[#4252B6]/20"><Plus size={14} color="white" /><Text className="text-[9px] font-bold text-white">New Goal</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Goal summary" onPress={() => setFilter('all')} className="h-[36px] w-[38px] items-center justify-center rounded-[9px] bg-[#E3E8FF]"><ChartNoAxesColumn size={15} color={colors.primary} /></Pressable></View>
-
-      <View className="mt-2 flex-row gap-1.5"><FilterChip label="All" count={allGoals.length} selected={filter === 'all'} onPress={() => setFilter('all')} /><FilterChip label="In Progress" count={activeCount} selected={filter === 'active'} onPress={() => setFilter('active')} /><FilterChip label="Completed" count={completedCount} selected={filter === 'achieved'} onPress={() => setFilter('achieved')} /></View>
-
-      {goals.isPending ? <View className="mt-2 rounded-[14px] bg-white p-6"><Text className="text-center text-[10px] text-muted">Loading your goals…</Text></View> : visibleGoals.length ? visibleGoals.map((goal) => <GoalCard key={goal.id} goal={goal} currency={goals.data?.currency ?? currency} onOpen={() => openGoal(goal.id)} onContribute={() => openContribution(goal.id)} />) : <EmptyGoals completed={filter === 'achieved'} onCreate={openCreate} />}
-
-      <View className="mt-2.5 flex-row items-center rounded-[13px] border border-[#E5E9FF] bg-[#E9ECFF] px-2.5 py-2"><View className="mr-2 h-7 w-7 items-center justify-center rounded-full bg-[#596CEB]"><Sparkles size={13} color="white" /></View><View className="flex-1"><Text className="text-[8px] font-bold text-primary">Your savings momentum</Text><Text numberOfLines={2} className="mt-0.5 text-[7px] leading-[11px] text-[#384560]">You saved {money(goals.data?.month_added, goals.data?.currency ?? currency)} across your goals this month. Keep going—small steps add up.</Text></View></View>
-    </ScrollView>
-
-    <AppBottomBar active="savings" />
-  </SafeAreaView>;
+function HeroStat({ Icon, label, value }: { Icon: LucideIcon; label: string; value: string }) {
+  return (
+    <View className="flex-1">
+      <View className="flex-row items-center gap-1.5">
+        <Icon size={13} color={LIGHT_ACCENT} strokeWidth={2.2} />
+        <Text numberOfLines={1} className="flex-1 text-[11px] text-white/60">{label}</Text>
+      </View>
+      <Text numberOfLines={1} adjustsFontSizeToFit className="mt-1 text-sm font-bold text-white">{value}</Text>
+    </View>
+  );
 }
 
 function FilterChip({ label, count, selected, onPress }: { label: string; count: number; selected: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} className={`h-[25px] flex-1 flex-row items-center justify-center gap-1 rounded-full px-2 ${selected ? 'bg-[#112954]' : 'border border-[#E8EAF2] bg-white'}`}><Text className={`text-[7px] ${selected ? 'font-bold text-white' : 'font-semibold text-[#52617E]'}`}>{label}</Text><Text className={`text-[7px] ${selected ? 'font-bold text-white' : 'text-[#68758F]'}`}>({count})</Text></Pressable>;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={selected ? undefined : cardShadow}
+      className={`h-10 flex-row items-center gap-2 rounded-full px-4 ${selected ? 'bg-primary' : 'bg-card'}`}>
+      <Text className={`text-[13px] ${selected ? 'font-bold text-white' : 'font-semibold text-ink'}`}>{label}</Text>
+      <View className={`min-w-[22px] items-center rounded-full px-1.5 py-0.5 ${selected ? 'bg-white/20' : 'bg-background'}`}>
+        <Text className={`text-[11px] font-bold ${selected ? 'text-white' : 'text-muted'}`}>{count}</Text>
+      </View>
+    </Pressable>
+  );
 }
 
 function GoalCard({ goal, currency, onOpen, onContribute }: { goal: SavingsGoal; currency: string; onOpen: () => void; onContribute: () => void }) {
   const ratio = Number(goal.target_amount) > 0 ? Number(goal.saved_amount) / Number(goal.target_amount) : 0;
   const progress = Math.max(0, Math.min(100, ratio * 100));
-  const Icon = iconFor(goal.icon);
+  const style = GOAL_STYLE[goal.icon] ?? GOAL_STYLE.laptop;
   const complete = goal.status === 'achieved';
+  const accent = complete ? '#10B981' : style.color;
   const targetDate = goal.target_date ? new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(`${goal.target_date}T12:00:00`)) : 'Flexible target';
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.saved_amount));
-  const monthPlan = goal.target_date ? remaining / Math.max(1, (new Date(`${goal.target_date}T12:00:00`).getFullYear() - new Date().getFullYear()) * 12 + new Date(`${goal.target_date}T12:00:00`).getMonth() - new Date().getMonth()) : remaining / 12;
+  const monthPlan = remaining / (goal.target_date ? monthsUntil(goal.target_date) : 12);
 
   function showActions() {
     Alert.alert(goal.name, 'Choose an action for this savings goal.', [
@@ -116,29 +309,140 @@ function GoalCard({ goal, currency, onOpen, onContribute }: { goal: SavingsGoal;
     ]);
   }
 
-  return <View className="mt-2 overflow-hidden rounded-[13px] border border-[#EDF0F6] bg-white p-2">
-    {goal.icon === 'travel' && <TravelScene />}
-    <View className="flex-row items-start pt-0.5">
-      <Pressable accessibilityRole="button" onPress={onOpen} className="mr-2 mt-0.5 h-8 w-8 items-center justify-center rounded-[10px] bg-[#EEF0FF]"><Icon size={14} color={colors.primary} /></Pressable>
-      <Pressable accessibilityRole="button" onPress={onOpen} className="min-w-0 flex-1"><Text numberOfLines={1} className="text-[9px] font-bold text-[#17294C]">{goal.name}</Text><Text numberOfLines={1} className="mt-0.5 text-[7px] text-[#71809A]">Due {targetDate} · {goalType(goal.icon)}</Text></Pressable>
-      <View className={`rounded-full px-1.5 py-1 ${complete ? 'bg-[#E5F7ED]' : 'bg-[#EEF0FF]'}`}><Text className={`text-[7px] font-bold ${complete ? 'text-[#26764C]' : 'text-[#4159C7]'}`}>{progress.toFixed(1)}%</Text></View>
+  return (
+    <View style={cardShadow} className="mt-4 rounded-3xl bg-card p-4">
+      {goal.icon === 'travel' && <TravelScene />}
+
+      <Pressable accessibilityRole="button" accessibilityLabel={`${goal.name} details`} onPress={onOpen} className="flex-row items-center active:opacity-70">
+        <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${style.color}22` }}>
+          <style.Icon size={21} color={style.color} strokeWidth={2} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-[15px] font-bold text-ink">{goal.name}</Text>
+          <Text numberOfLines={1} className="mt-0.5 text-[12px] text-muted">{style.label} · Due {targetDate}</Text>
+        </View>
+        <View className="flex-row items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: complete ? colors.positive : colors.accentLight }}>
+          {complete && <Check size={12} color={colors.positiveText} strokeWidth={2.6} />}
+          <Text className="text-[11px] font-bold" style={{ color: complete ? colors.positiveText : colors.primary }}>
+            {complete ? 'Done' : `${progress.toFixed(0)}%`}
+          </Text>
+        </View>
+      </Pressable>
+
+      <View className="mt-4 flex-row items-end justify-between">
+        <View>
+          <Text className="text-[11px] text-muted">Saved</Text>
+          <Text className="mt-0.5 text-[22px] font-extrabold tracking-tight text-ink">{money(goal.saved_amount, currency)}</Text>
+        </View>
+        <View className="items-end">
+          <Text className="text-[11px] text-muted">Target</Text>
+          <Text className="mt-0.5 text-[14px] font-bold text-ink">{money(goal.target_amount, currency)}</Text>
+        </View>
+      </View>
+
+      <View className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#ECEEF5]">
+        <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: accent }} />
+      </View>
+
+      <View className="mt-2.5 flex-row items-center justify-between">
+        <View className="flex-row items-center gap-1.5">
+          <CalendarDays size={13} color={colors.textSecondary} />
+          <Text className="text-[12px] text-muted">
+            {goal.reminder_enabled ? `Suggested ${money(monthPlan, currency)}/mo` : `${goal.contribution_count} contribution${goal.contribution_count === 1 ? '' : 's'} so far`}
+          </Text>
+        </View>
+        <Text className="text-[12px] font-bold" style={{ color: complete ? colors.positiveText : colors.primary }}>
+          {complete ? 'Goal completed' : `${money(remaining, currency)} left`}
+        </Text>
+      </View>
+
+      <View className="mt-4 flex-row items-center gap-2.5">
+        <Pressable
+          accessibilityRole="button"
+          onPress={complete ? onOpen : onContribute}
+          className={`h-11 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl active:opacity-80 ${complete ? 'bg-positive' : 'bg-primary'}`}>
+          {complete ? <Check size={16} color={colors.positiveText} strokeWidth={2.4} /> : <Plus size={16} color="white" strokeWidth={2.4} />}
+          <Text className={`text-[13px] font-bold ${complete ? 'text-positive-text' : 'text-white'}`}>{complete ? 'View summary' : 'Contribute'}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`More actions for ${goal.name}`}
+          onPress={showActions}
+          className="h-11 w-11 items-center justify-center rounded-2xl bg-background active:bg-accent-light">
+          <Ellipsis size={18} color={colors.primary} />
+        </Pressable>
+      </View>
     </View>
-    <View className="mt-2 flex-row items-center justify-between"><Text className="text-[15px] font-extrabold tracking-tight text-[#213B70]">{money(goal.saved_amount, currency)}</Text><Text className="text-[7px] text-[#78839A]">Target: {money(goal.target_amount, currency)}</Text></View>
-    <View className="mt-1 h-[4px] overflow-hidden rounded-full bg-[#E9ECFA]"><View className={`h-full rounded-full ${complete ? 'bg-[#45B881]' : 'bg-[#687BFF]'}`} style={{ width: `${progress}%` }} /></View>
-    <View className="mt-1 flex-row items-center justify-between"><View className="flex-row items-center gap-1"><CalendarDays size={9} color={colors.accent} /><Text className="text-[7px] text-[#75819A]">{goal.reminder_enabled ? `Suggested · ${money(monthPlan, currency)}/mo` : `${goal.contribution_count} contribution${goal.contribution_count === 1 ? '' : 's'} so far`}</Text></View><Text className="text-[7px] font-bold text-primary">{complete ? 'Goal completed' : `${money(remaining, currency)} left`}</Text></View>
-    <View className="mt-2 flex-row items-center gap-1.5"><Pressable accessibilityRole="button" onPress={complete ? onOpen : onContribute} className="h-[25px] flex-1 flex-row items-center justify-center gap-1 rounded-[7px] bg-[#EAEDFF]">{complete ? <Check size={10} color={colors.primary} /> : <Plus size={10} color={colors.primary} />}<Text className="text-[7px] font-bold text-primary">{complete ? 'View Summary' : 'Contribute'}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`More actions for ${goal.name}`} onPress={showActions} className="h-[25px] w-[29px] items-center justify-center rounded-[7px] bg-[#F1F3F8]"><Ellipsis size={14} color={colors.primary} /></Pressable></View>
-  </View>;
+  );
 }
 
 function TravelScene() {
-  return <LinearGradient colors={['#D9E7FF', '#F4CBA8', '#B9D7CF']} className="mb-2 h-[70px] overflow-hidden rounded-[9px]">
-    <View className="absolute right-5 top-2 h-5 w-5 items-center justify-center rounded-full bg-[#FFF4D6]"><Sun size={12} color="#E8A94D" /></View>
-    <Svg width="100%" height="70" viewBox="0 0 340 70" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', top: 0, left: 0 }}><Polygon points="0,59 64,18 126,59" fill="#809B9B" /><Polygon points="78,61 160,7 239,61" fill="#6E888C" /><Polygon points="195,61 272,23 340,61" fill="#8FA8A3" /><Polygon points="0,59 340,59 340,70 0,70" fill="#405A66" opacity="0.75" /></Svg>
-    <View className="absolute bottom-2 left-2.5 flex-row items-center gap-1.5"><View className="h-6 w-6 items-center justify-center rounded-lg bg-white/80"><Mountain size={13} color="#29436C" /></View><View><Text className="text-[6px] font-bold tracking-[1px] text-[#263C5A]">TRAVEL FUND</Text><Text className="mt-0.5 text-[8px] font-extrabold text-[#17294C]">A trip you’re dreaming of</Text></View></View>
-    <View className="absolute right-3 top-3"><Plane size={14} color="#31486F" /></View>
-  </LinearGradient>;
+  return (
+    <View className="mb-4 overflow-hidden rounded-2xl">
+      <LinearGradient colors={['#D9E7FF', '#F4CBA8', '#B9D7CF']} style={{ height: 96 }}>
+        <View className="absolute right-6 top-3 h-7 w-7 items-center justify-center rounded-full bg-[#FFF4D6]">
+          <Sun size={16} color="#E8A94D" />
+        </View>
+        <Svg width="100%" height="96" viewBox="0 0 340 96" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <Polygon points="0,80 64,30 126,80" fill="#809B9B" />
+          <Polygon points="78,82 160,14 239,82" fill="#6E888C" />
+          <Polygon points="195,82 272,36 340,82" fill="#8FA8A3" />
+          <Polygon points="0,80 340,80 340,96 0,96" fill="#405A66" opacity="0.75" />
+        </Svg>
+        <View className="absolute bottom-3 left-3 flex-row items-center gap-2">
+          <View className="h-8 w-8 items-center justify-center rounded-xl bg-white/85">
+            <Mountain size={16} color="#29436C" />
+          </View>
+          <View>
+            <Text className="text-[9px] font-bold tracking-[1px] text-white">TRAVEL FUND</Text>
+            <Text className="mt-0.5 text-[12px] font-extrabold text-white">A trip you’re dreaming of</Text>
+          </View>
+        </View>
+        <View className="absolute right-[60px] top-4">
+          <Plane size={16} color="#31486F" />
+        </View>
+      </LinearGradient>
+    </View>
+  );
 }
 
 function EmptyGoals({ completed, onCreate }: { completed: boolean; onCreate: () => void }) {
-  return <View className="mt-2 items-center rounded-[14px] border border-dashed border-[#D7DDF0] bg-white px-5 py-6"><View className="h-10 w-10 items-center justify-center rounded-xl bg-[#EEF0FF]"><Sprout size={18} color={colors.accent} /></View><Text className="mt-2 text-[10px] font-bold text-primary">{completed ? 'Your first completed goal will appear here' : 'Start saving toward something you love'}</Text><Text className="mt-1 text-center text-[8px] leading-3 text-muted">{completed ? 'Keep contributing and celebrate when you reach your target.' : 'Create a goal and give every contribution a purpose.'}</Text>{!completed && <Pressable onPress={onCreate} className="mt-2.5 rounded-full bg-primary px-3 py-1.5"><Text className="text-[8px] font-bold text-white">Create a goal</Text></Pressable>}</View>;
+  return (
+    <View style={cardShadow} className="mt-4 items-center rounded-3xl bg-card px-6 py-9">
+      <View className="h-16 w-16 items-center justify-center rounded-3xl bg-accent-light">
+        {completed ? <Flag size={26} color={colors.accent} /> : <Sprout size={26} color={colors.accent} />}
+      </View>
+      <Text className="mt-4 text-center text-base font-bold text-ink">
+        {completed ? 'Your first completed goal will appear here' : 'Start saving toward something you love'}
+      </Text>
+      <Text className="mt-1.5 text-center text-[13px] leading-5 text-muted">
+        {completed ? 'Keep contributing and celebrate when you reach your target.' : 'Create a goal and give every contribution a purpose.'}
+      </Text>
+      {!completed && (
+        <>
+          <View className="mt-4 flex-row flex-wrap justify-center gap-2">
+            {(['emergency', 'laptop', 'travel'] as const).map((icon) => {
+              const idea = GOAL_STYLE[icon];
+              const label = icon === 'emergency' ? 'Emergency fund' : icon === 'laptop' ? 'New laptop' : 'Dream trip';
+              return (
+                <Pressable
+                  key={icon}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Create a goal like ${label}`}
+                  onPress={onCreate}
+                  className="flex-row items-center gap-1.5 rounded-full border border-border bg-background px-3 py-2 active:opacity-70">
+                  <idea.Icon size={14} color={idea.color} strokeWidth={2.2} />
+                  <Text className="text-[12px] font-semibold text-ink">{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable onPress={onCreate} className="mt-5 flex-row items-center gap-1.5 rounded-full bg-primary px-5 py-3 active:opacity-80">
+            <Plus size={15} color="white" strokeWidth={2.4} />
+            <Text className="text-[13px] font-bold text-white">Create a goal</Text>
+          </Pressable>
+        </>
+      )}
+    </View>
+  );
 }

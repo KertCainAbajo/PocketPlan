@@ -57,6 +57,7 @@ Route::middleware(['auth:sanctum', 'active', 'student', 'throttle:api'])->group(
     Route::patch('me', [ProfileController::class, 'update'])->name('me.update');
     Route::post('me/password', [ProfileController::class, 'changePassword'])->name('me.password');
     Route::delete('me/sessions', [ProfileController::class, 'revokeOtherSessions'])->name('me.sessions.destroy');
+    Route::delete('me', [ProfileController::class, 'destroy'])->name('me.destroy');
     Route::get('notification-preferences', [NotificationPreferenceController::class, 'show'])->name('notification-preferences.show');
     Route::put('notification-preferences', [NotificationPreferenceController::class, 'update'])->name('notification-preferences.update');
     Route::get('export/transactions', ExportController::class)->name('export.transactions');
@@ -71,6 +72,8 @@ Route::middleware(['auth:sanctum', 'active', 'student', 'throttle:api'])->group(
     Route::post('savings-goals/{goal}/contributions', [SavingsGoalController::class, 'contribute'])->whereNumber('goal')->name('savings-goals.contributions.store');
     Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index');
     Route::post('accounts', [AccountController::class, 'store'])->name('accounts.store');
+    Route::patch('accounts/{account}', [AccountController::class, 'update'])->whereNumber('account')->name('accounts.update');
+    Route::delete('accounts/{account}', [AccountController::class, 'destroy'])->whereNumber('account')->name('accounts.destroy');
 
     Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'update']);
 
