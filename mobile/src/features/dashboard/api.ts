@@ -208,6 +208,10 @@ export const accountApi = {
     const { data } = await api.get<{ data: Account[] }>('/accounts');
     return data.data;
   },
+  async create(input: { name: string; type: Account['type']; opening_balance: string }): Promise<Account> {
+    const { data } = await api.post<{ data: Account }>('/accounts', input);
+    return data.data;
+  },
 };
 
 export interface BudgetItem {

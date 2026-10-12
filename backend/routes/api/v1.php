@@ -12,7 +12,9 @@ use App\Http\Controllers\Api\V1\BudgetController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ExpenseController;
+use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\IncomeController;
+use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RecurringIncomeController;
@@ -52,6 +54,12 @@ Route::middleware('throttle:google-oauth')->group(function () {
 Route::middleware(['auth:sanctum', 'active', 'student', 'throttle:api'])->group(function () {
     Route::post('logout', LogoutController::class)->name('logout');
     Route::get('me', [ProfileController::class, 'show'])->name('me');
+    Route::patch('me', [ProfileController::class, 'update'])->name('me.update');
+    Route::post('me/password', [ProfileController::class, 'changePassword'])->name('me.password');
+    Route::delete('me/sessions', [ProfileController::class, 'revokeOtherSessions'])->name('me.sessions.destroy');
+    Route::get('notification-preferences', [NotificationPreferenceController::class, 'show'])->name('notification-preferences.show');
+    Route::put('notification-preferences', [NotificationPreferenceController::class, 'update'])->name('notification-preferences.update');
+    Route::get('export/transactions', ExportController::class)->name('export.transactions');
 
     Route::post('onboarding', OnboardingController::class)->name('onboarding');
     Route::get('dashboard', DashboardController::class)->name('dashboard');

@@ -1,11 +1,12 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BriefcaseBusiness, CalendarDays, House, Plus, Search, ShoppingBasket, SlidersHorizontal, ChartNoAxesColumn, Flag, UserRound, WalletCards, X, TrendingDown, TrendingUp } from 'lucide-react-native';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BriefcaseBusiness, CalendarDays, Plus, Search, ShoppingBasket, SlidersHorizontal, WalletCards, X, TrendingDown, TrendingUp } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/brand-mark';
+import { AppBottomBar } from '@/components/app-bottom-bar';
 import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
@@ -204,13 +205,7 @@ export default function ActivityScreen() {
         </Pressable>
       </ScrollView>
 
-      <View className="flex-row border-t border-border bg-card px-1 pb-1 pt-2">
-        <TabItem label="Home" icon={<House size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/')} />
-        <TabItem label="Activity" active icon={<ArrowLeftRight size={16} color={colors.primary} />} onPress={() => undefined} />
-        <TabItem label="Budgets" icon={<ChartNoAxesColumn size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/budgets')} />
-        <TabItem label="Goals" icon={<Flag size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/savings')} />
-        <TabItem label="Profile" icon={<UserRound size={16} color={colors.textSecondary} />} onPress={() => Alert.alert('Profile', user?.email ?? 'Your profile')} />
-      </View>
+      <AppBottomBar active="activity" />
     </SafeAreaView>
   );
 }
@@ -231,8 +226,4 @@ function ActivityRow({ transaction, currency, accountName, last }: { transaction
       <View className="ml-2 items-end"><View className="flex-row items-center gap-0.5">{income ? <ArrowDownLeft size={12} color="#388867" /> : <ArrowUpRight size={12} color="#B85A68" />}<Text className={`text-[11px] font-bold ${income ? 'text-[#2F8064]' : 'text-primary'}`}>{income ? '+' : '−'}{money(transaction.amount, currency)}</Text></View><Text className="mt-1 text-[8px] text-muted">{income ? 'Income' : 'Expense'}</Text></View>
     </Pressable>
   );
-}
-
-function TabItem({ label, icon, active = false, onPress }: { label: string; icon: React.ReactNode; active?: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="min-h-12 flex-1 items-center justify-center gap-0.5"><View className={`h-7 min-w-8 items-center justify-center rounded-full px-2 ${active ? 'bg-accent-light' : ''}`}>{icon}</View><Text className={`text-[9px] ${active ? 'font-semibold text-primary' : 'text-muted'}`}>{label}</Text></Pressable>;
 }

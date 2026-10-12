@@ -7,21 +7,17 @@ import {
   ArrowUpRight,
   Bell,
   BriefcaseBusiness,
-  ChartNoAxesColumn,
   ChevronRight,
-  Flag,
-  House,
   Plus,
   ShoppingBasket,
   Sprout,
-  UserRound,
   WalletCards,
 } from 'lucide-react-native';
-import { useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/brand-mark';
+import { AppBottomBar } from '@/components/app-bottom-bar';
 import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
@@ -67,8 +63,6 @@ const greeting = (timezone?: string) => {
 export default function HomeScreen() {
   useStatusBarStyle('dark');
   const user = useAuthStore((state) => state.user);
-  const signOut = useAuthStore((state) => state.signOut);
-  const [signingOut, setSigningOut] = useState(false);
 
   const dashboard = useQuery({
     queryKey: ['dashboard'],
@@ -88,19 +82,6 @@ export default function HomeScreen() {
   if (user && !user.is_onboarded) return <Redirect href="/onboarding" />;
 
   const openComingSoon = (feature: string) => Alert.alert(feature, `${feature} is coming soon.`);
-  const openProfile = () =>
-    Alert.alert('PocketPlan profile', user?.email ?? 'Your profile', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: signingOut ? 'Signing out…' : 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          setSigningOut(true);
-          await signOut();
-        },
-      },
-    ]);
-
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <ScrollView
@@ -245,13 +226,7 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      <View className="flex-row border-t border-border bg-card px-1 pb-1 pt-2">
-        <TabItem label="Home" active icon={<House size={17} color={colors.primary} />} onPress={() => undefined} />
-        <TabItem label="Activity" icon={<ArrowLeftRight size={17} color={colors.textSecondary} />} onPress={() => router.navigate('/activity')} />
-        <TabItem label="Budgets" icon={<ChartNoAxesColumn size={17} color={colors.textSecondary} />} onPress={() => router.navigate('/budgets')} />
-        <TabItem label="Goals" icon={<Flag size={17} color={colors.textSecondary} />} onPress={() => router.navigate('/savings')} />
-        <TabItem label="Profile" icon={<UserRound size={17} color={colors.textSecondary} />} onPress={openProfile} />
-      </View>
+      <AppBottomBar active="home" />
     </SafeAreaView>
   );
 }
@@ -304,14 +279,5 @@ function TransactionRow({
         {income ? '+' : '−'}{money(transaction.amount, currency)}
       </Text>
     </View>
-  );
-}
-
-function TabItem({ label, icon, active = false, onPress }: { label: string; icon: React.ReactNode; active?: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="min-h-12 flex-1 items-center justify-center gap-0.5">
-      <View className={`h-7 min-w-8 items-center justify-center rounded-full px-2 ${active ? 'bg-accent-light' : ''}`}>{icon}</View>
-      <Text className={`text-[9px] ${active ? 'font-semibold text-primary' : 'text-muted'}`}>{label}</Text>
-    </Pressable>
   );
 }

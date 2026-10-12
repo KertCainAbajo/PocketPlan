@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bus, ChartNoAxesColumn, Flag, House, ReceiptText, ShoppingBag, ShoppingBasket, Utensils, UserRound, WalletCards, Plus, ArrowLeftRight } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Bus, ChartNoAxesColumn, House, ReceiptText, ShoppingBag, ShoppingBasket, Utensils, WalletCards, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormBanner } from '@/components/ui/form-banner';
+import { AppBottomBar } from '@/components/app-bottom-bar';
 import { budgetApi, type BudgetItem } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
@@ -124,17 +125,7 @@ export default function BudgetsScreen() {
         </> : <View className="mt-3 items-center rounded-[20px] border border-[#E8EBF3] bg-white px-5 py-8"><View className="h-11 w-11 items-center justify-center rounded-2xl bg-accent-light"><ChartNoAxesColumn size={19} color={colors.primary} /></View><Text className="mt-3 text-[14px] font-bold text-primary">No budget for {monthLabel(month)}</Text><Text className="mt-1 text-center text-[10px] leading-4 text-muted">Create a spending plan to track your remaining balance and category limits.</Text><Pressable onPress={createBudget} className="mt-4 rounded-xl bg-primary px-5 py-3"><Text className="text-[10px] font-semibold text-white">Create a budget</Text></Pressable></View>}
       </ScrollView>
 
-      <View className="flex-row border-t border-border bg-card px-1 pb-1 pt-2">
-        <TabItem label="Home" icon={<House size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/')} />
-        <TabItem label="Activity" icon={<ArrowLeftRight size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/activity')} />
-        <TabItem label="Budgets" active icon={<ChartNoAxesColumn size={16} color={colors.primary} />} onPress={() => undefined} />
-        <TabItem label="Goals" icon={<Flag size={16} color={colors.textSecondary} />} onPress={() => router.navigate('/savings')} />
-        <TabItem label="Profile" icon={<UserRound size={16} color={colors.textSecondary} />} onPress={() => Alert.alert('Profile', user?.email ?? 'Your profile')} />
-      </View>
+      <AppBottomBar active="budgets" />
     </SafeAreaView>
   );
-}
-
-function TabItem({ label, icon, active = false, onPress }: { label: string; icon: React.ReactNode; active?: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="min-h-12 flex-1 items-center justify-center gap-0.5"><View className={`h-7 min-w-8 items-center justify-center rounded-full px-2 ${active ? 'bg-accent-light' : ''}`}>{icon}</View><Text className={`text-[9px] ${active ? 'font-semibold text-primary' : 'text-muted'}`}>{label}</Text></Pressable>;
 }
