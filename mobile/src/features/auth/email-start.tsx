@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowRight,
+  ChevronsRight,
   BadgeCheck,
   CheckCircle2,
   KeyRound,
@@ -13,13 +14,17 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserPlus,
   Wallet,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
+import { showAlert } from '@/components/app-alert';
 import { AuthLayout } from '@/components/auth-layout';
 import { FormBanner } from '@/components/ui/form-banner';
 import { getErrorMessage } from '@/lib/api-client';
@@ -61,7 +66,7 @@ function greeting(): string {
 /**
  * First step of sign-in and sign-up: just an email address. We email a
  * 6-digit code and continue on the verify-code screen. Sign-in also offers
- * the last-used email in one tap, and a password as a fallback.
+ * the last-used email in one tap.
  */
 export function EmailStart({ mode }: { mode: 'signin' | 'signup' }) {
   // Prefilled when the other screen sent us here ("No account? Create one").
@@ -145,7 +150,7 @@ export function EmailStart({ mode }: { mode: 'signin' | 'signup' }) {
             sending={sendCode.isPending && sendCode.variables === lastEmail}
             disabled={sendCode.isPending}
             onContinue={() => sendCode.mutate(lastEmail)}
-            onForget={() => { void forgetLastEmail(); setLastEmail(null); }}
+            onRemove={() => { void forgetLastEmail(); setLastEmail(null); }}
           />
           <Divider label="or use another email" />
         </>
@@ -220,33 +225,51 @@ export function EmailStart({ mode }: { mode: 'signin' | 'signup' }) {
         <Feature Icon={LockKeyhole} title="Private & secure" />
       </View>
 
-      {!signup && (
-        <Link href="/password-login" asChild>
-          <Pressable accessibilityRole="link" className="mt-5 flex-row items-center justify-center gap-1.5 self-center px-3 py-2 active:opacity-70">
-            <KeyRound size={15} color={colors.accent} />
-            <Text className="text-[14px] font-semibold text-accent">Prefer a password? Sign in with password</Text>
-          </Pressable>
-        </Link>
-      )}
-
       <View className="flex-1" />
 
-      <View className={`${signup ? 'mt-7' : 'mt-3'} flex-row items-center justify-center`}>
-        <Text className="text-[14px] text-muted">{signup ? 'Already have an account? ' : 'New to PocketPlan? '}</Text>
-        <Link href={signup ? '/login' : '/register'} replace asChild>
-          <Pressable accessibilityRole="link" hitSlop={8} className="flex-row items-center gap-1 active:opacity-70">
-            <Text className="text-[14px] font-bold text-primary">{signup ? 'Sign in' : 'Create an account'}</Text>
-            <ArrowRight size={14} color={colors.primary} strokeWidth={2.4} />
-          </Pressable>
-        </Link>
-      </View>
+      <SwitchCard signup={signup} />
 
       {signup && (
-        <Text className="mt-3 text-center text-[12px] leading-[18px] text-muted">
-          By continuing you agree to the <Text className="font-semibold text-accent" onPress={() => router.push('/legal')}>Terms & Privacy</Text>.
-        </Text>
+        <View className="mt-4 flex-row items-start justify-center gap-1.5 px-4">
+          <ShieldCheck size={14} color={colors.positiveText} style={{ marginTop: 2 }} />
+          <Text className="flex-1 text-center text-[12px] leading-[18px] text-muted">
+            By continuing you agree to our{' '}
+            <Text className="font-semibold text-primary underline" onPress={() => router.push('/legal')}>Terms of Service</Text> and{' '}
+            <Text className="font-semibold text-primary underline" onPress={() => router.push('/legal')}>Privacy Policy</Text>.
+          </Text>
+        </View>
       )}
     </AuthLayout>
+  );
+}
+
+/** Bottom card that switches between Sign in and Create account. */
+function SwitchCard({ signup }: { signup: boolean }) {
+  const Icon = signup ? LogIn : UserPlus;
+  return (
+    <Link href={signup ? '/login' : '/register'} replace asChild>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={signup ? 'Already have an account? Sign in' : 'New to PocketPlan? Create an account'}
+        style={shadow(0.06)}
+        className="mt-7 flex-row items-center rounded-3xl border border-accent/20 bg-card p-4 active:opacity-80">
+        <LinearGradient
+          colors={['#EEF0FF', '#DDE2FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={21} color={colors.accent} strokeWidth={2.1} />
+        </LinearGradient>
+        <View className="ml-3.5 flex-1">
+          <Text className="text-[15px] font-bold text-ink">{signup ? 'Already have an account?' : 'New to PocketPlan?'}</Text>
+          <Text className="mt-0.5 text-[12.5px] text-muted">{signup ? 'Sign in with a code sent to your email' : 'Create your free account in under a minute'}</Text>
+        </View>
+        <View className="flex-row items-center gap-1 rounded-full bg-primary py-2 pl-3.5 pr-2.5">
+          <Text className="text-[13px] font-bold text-white">{signup ? 'Sign in' : 'Sign up'}</Text>
+          <ArrowRight size={14} color="white" strokeWidth={2.5} />
+        </View>
+      </Pressable>
+    </Link>
   );
 }
 
@@ -294,30 +317,83 @@ function Divider({ label }: { label: string }) {
   );
 }
 
-/** One-tap sign-in for the email last used on this phone. */
-function RecentAccount({ email, sending, disabled, onContinue, onForget }: { email: string; sending: boolean; disabled: boolean; onContinue: () => void; onForget: () => void }) {
+/**
+ * One-tap sign-in for the email last used on this phone. Swipe it right to show
+ * Remove on the left, which asks before forgetting the account on this phone.
+ */
+function RecentAccount({ email, sending, disabled, onContinue, onRemove }: { email: string; sending: boolean; disabled: boolean; onContinue: () => void; onRemove: () => void }) {
+  const swipe = useRef<SwipeableMethods>(null);
+
+  function confirmRemove() {
+    showAlert(
+      'Remove this account?',
+      `${email} won’t be suggested on this phone anymore. Your account and data stay safe, and you can sign in again anytime.`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => swipe.current?.close() },
+        { text: 'Remove', style: 'destructive', onPress: onRemove },
+      ],
+      { icon: Trash2 },
+    );
+  }
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Continue as ${email}`}
-      disabled={disabled}
-      onPress={onContinue}
-      style={shadow(0.1)}
-      className="flex-row items-center rounded-3xl border border-accent/25 bg-card p-3.5 active:opacity-85">
-      <LinearGradient colors={[colors.accent, colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
-        <Text className="text-[18px] font-extrabold text-white">{email[0]?.toUpperCase()}</Text>
-      </LinearGradient>
-      <View className="ml-3 flex-1">
-        <Text className="text-[11px] font-bold uppercase tracking-[1px] text-accent">Continue as</Text>
-        <Text numberOfLines={1} className="mt-0.5 text-[15px] font-bold text-ink">{email}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Not you? Forget this email" hitSlop={8} onPress={onForget} className="mt-0.5 self-start">
-          <Text className="text-[12px] font-semibold text-muted underline">Not you?</Text>
+    <View>
+      <Swipeable
+        ref={swipe}
+        friction={1.6}
+        leftThreshold={40}
+        overshootLeft={false}
+        renderLeftActions={(progress) => <RemoveAction progress={progress} onPress={confirmRemove} />}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Continue as ${email}`}
+          accessibilityHint="Swipe right to remove this account from this phone"
+          accessibilityActions={[{ name: 'remove', label: 'Remove account from this phone' }]}
+          onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === 'remove') confirmRemove(); }}
+          disabled={disabled}
+          onPress={onContinue}
+          style={shadow(0.1)}
+          className="flex-row items-center rounded-3xl border border-accent/25 bg-card p-3.5 active:opacity-85">
+          <LinearGradient colors={[colors.accent, colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
+            <Text className="text-[18px] font-extrabold text-white">{email[0]?.toUpperCase()}</Text>
+          </LinearGradient>
+          <View className="ml-3 flex-1">
+            <Text className="text-[11px] font-bold uppercase tracking-[1px] text-accent">Continue as</Text>
+            <Text numberOfLines={1} className="mt-0.5 text-[15px] font-bold text-ink">{email}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Not you? Remove this account" hitSlop={8} onPress={confirmRemove} className="mt-0.5 self-start">
+              <Text className="text-[12px] font-semibold text-muted underline">Not you?</Text>
+            </Pressable>
+          </View>
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
+            {sending ? <ActivityIndicator size="small" color="white" /> : <ArrowRight size={18} color="white" strokeWidth={2.4} />}
+          </View>
         </Pressable>
+      </Swipeable>
+      <View className="mt-2 flex-row items-center justify-center gap-1">
+        <Text className="text-[11px] text-muted">Swipe right to remove</Text>
+        <ChevronsRight size={13} color={colors.textSecondary} />
       </View>
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
-        {sending ? <ActivityIndicator size="small" color="white" /> : <ArrowRight size={18} color="white" strokeWidth={2.4} />}
-      </View>
-    </Pressable>
+    </View>
+  );
+}
+
+/** Red Remove button revealed behind the card; it grows in as the card slides. */
+function RemoveAction({ progress, onPress }: { progress: SharedValue<number>; onPress: () => void }) {
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.get(), [0, 0.6, 1], [0, 0.6, 1], Extrapolation.CLAMP),
+    transform: [{ scale: interpolate(progress.get(), [0, 1], [0.7, 1], Extrapolation.CLAMP) }],
+  }));
+  return (
+    <Animated.View style={style} className="mr-3 justify-center">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Remove account from this phone"
+        onPress={onPress}
+        className="h-full w-[88px] items-center justify-center gap-1 rounded-3xl bg-error active:opacity-85">
+        <Trash2 size={22} color="white" />
+        <Text className="text-[12px] font-bold text-white">Remove</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 

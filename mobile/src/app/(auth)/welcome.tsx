@@ -77,7 +77,7 @@ export default function WelcomeScreen() {
           </View>
 
           <Animated.View entering={FadeInUp.delay(380).duration(600)} className="mt-7">
-            <Button label="Create free account" variant="inverse" onPress={() => router.push('/register')} />
+            <Button label="Get started" variant="inverse" onPress={() => router.push('/register')} />
             <Button label="I already have an account" variant="outline-inverse" onPress={() => router.push('/login')} className="mt-3" />
             <View className="mt-4 flex-row items-center justify-center gap-1.5">
               <ShieldCheck size={14} color="rgba(255,255,255,0.6)" />
