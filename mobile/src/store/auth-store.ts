@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios';
 import { create } from 'zustand';
 
 import { authApi } from '@/features/auth/api';
+import { rememberEmail } from '@/features/auth/last-email';
 import { setAuthToken } from '@/lib/api-client';
 import { tokenStorage } from '@/lib/token-storage';
 import type { User } from '@/types/api';
@@ -61,6 +62,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       await tokenStorage.set(token);
       setAuthToken(token);
       set({ status: 'signedIn', user });
+      // Offered as "Continue as …" on the next sign-in.
+      void rememberEmail(user.email);
     },
 
     async signOut() {

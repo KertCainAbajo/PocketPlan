@@ -13,6 +13,10 @@ class EmailCodeRequest extends FormRequest
     /** @return array<string, array<int, string>> */
     public function rules(): array
     {
-        return ['email' => ['required', 'string', 'email', 'max:255']];
+        return [
+            'email' => ['required', 'string', 'email', 'max:255'],
+            // signin: the email must already have an account; signup: it must not.
+            'intent' => ['nullable', 'string', 'in:signin,signup'],
+        ];
     }
 }

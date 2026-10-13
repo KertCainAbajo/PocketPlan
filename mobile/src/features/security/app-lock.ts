@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 /**
  * App lock for this device: an optional 4-digit PocketPlan PIN, plus optional
  * biometrics (fingerprint / face) on top of it. Everything lives in the
- * device's secure storage and is wiped on sign-out.
+ * device's secure storage, kept across sign-out for the same account.
  */
 const PIN_KEY = 'pocketplan.app-pin';
 /** Kept from the earlier biometric-only lock so existing users stay locked. */
@@ -57,9 +57,22 @@ export async function setBiometrics(enabled: boolean) {
   await SecureStore.setItemAsync(BIOMETRIC_KEY, String(enabled));
 }
 
-/** Called on sign-out so the next person on this phone starts without a lock. */
+/** Removes the PIN, biometrics and prompt choice (Forgot PIN, or a different account signing in). */
 export async function clearAppLock() {
-  await Promise.all([PIN_KEY, BIOMETRIC_KEY, PROMPT_KEY].map((key) => SecureStore.deleteItemAsync(key).catch(() => undefined)));
+  await Promise.all([PIN_KEY, BIOMETRIC_KEY, PROMPT_KEY, OWNER_KEY].map((key) => SecureStore.deleteItemAsync(key).catch(() => undefined)));
+}
+
+/** Which account the saved lock belongs to, so it survives sign-out but never carries over to someone else. */
+const OWNER_KEY = 'pocketplan.app-lock-owner';
+
+/**
+ * Called after every sign-in. Keeps the lock when the same account signs back
+ * in, and clears it when a different account uses this phone.
+ */
+export async function claimAppLock(userId: number) {
+  const owner = await SecureStore.getItemAsync(OWNER_KEY).catch(() => null);
+  if (owner !== null && owner !== String(userId)) await clearAppLock();
+  await SecureStore.setItemAsync(OWNER_KEY, String(userId)).catch(() => undefined);
 }
 
 /** Which biometrics this phone has set up, for labels like "Face ID" or "Fingerprint". */
@@ -90,7 +103,7 @@ export function biometricLabel(kind: BiometricKind) {
 /** What we suggest for this platform when none is detected yet. */
 export const recommendedBiometric = () => (Platform.OS === 'ios' ? 'Face ID' : 'Fingerprint');
 
-/** "Maybe later" on the secure-your-app prompt; reset on sign-out so it is offered again after the next sign-in. */
+/** "Maybe later" on the secure-your-app prompt; cleared only when a different account signs in. */
 const PROMPT_KEY = 'pocketplan.secure-prompt-dismissed';
 
 export async function hasDismissedSecurePrompt() {

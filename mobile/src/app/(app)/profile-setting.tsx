@@ -981,7 +981,7 @@ function AppLockSection() {
         )}
       </SettingsCard>
 
-      <InfoNote text="PocketPlan locks when you open it and after 15 seconds away. Your PIN is stored securely on this phone only, and signing out removes it." />
+      <InfoNote text="PocketPlan locks when you open it and after 15 seconds away. Your PIN is stored securely on this phone only. It stays when you sign out, and is removed if another account signs in here." />
     </>
   );
 }

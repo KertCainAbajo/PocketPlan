@@ -130,4 +130,36 @@ class EmailCodeTest extends TestCase
         $this->postJson('/api/v1/auth/email-code/verify', ['email' => 'juan@example.com', 'code' => $code])
             ->assertForbidden();
     }
+
+    public function test_sign_in_needs_an_existing_account(): void
+    {
+        Notification::fake();
+
+        $this->postJson('/api/v1/auth/email-code', ['email' => 'nobody@example.com', 'intent' => 'signin'])
+            ->assertUnprocessable()
+            ->assertJsonPath('reason', 'no_account');
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_sign_up_refuses_an_email_that_already_has_an_account(): void
+    {
+        Notification::fake();
+        User::factory()->create(['email' => 'juan@example.com']);
+
+        $this->postJson('/api/v1/auth/email-code', ['email' => 'Juan@Example.com', 'intent' => 'signup'])
+            ->assertUnprocessable()
+            ->assertJsonPath('reason', 'account_exists');
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_matching_intent_sends_the_code(): void
+    {
+        Notification::fake();
+        User::factory()->create(['email' => 'juan@example.com']);
+
+        $this->postJson('/api/v1/auth/email-code', ['email' => 'juan@example.com', 'intent' => 'signin'])->assertOk();
+        $this->postJson('/api/v1/auth/email-code', ['email' => 'new@example.com', 'intent' => 'signup'])->assertOk();
+    }
 }

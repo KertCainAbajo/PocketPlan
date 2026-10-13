@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AlertHost } from '@/components/app-alert';
 import { AppLockScreen } from '@/components/app-lock-screen';
 import { OfflineNotice } from '@/components/offline-notice';
-import { clearAppLock, getLockSettings, isLockEnabled, type LockSettings } from '@/features/security/app-lock';
+import { claimAppLock, clearAppLock, getLockSettings, isLockEnabled, type LockSettings } from '@/features/security/app-lock';
 import { setUnauthorizedHandler } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
@@ -54,10 +54,13 @@ function RootNavigator() {
   const appState = useRef(AppState.currentState);
   const backgroundedAt = useRef<number | null>(null);
 
-  // Forget the previous session's lock as soon as the auth status changes, so a
-  // fresh sign-in never shows (or prompts with) the old lock settings.
+  // Reset the lock whenever the auth status changes. Signing in (from signed out)
+  // already proved who you are, so that session starts unlocked; opening the app
+  // with a saved session (from loading) is what asks for the PIN.
   const [lockStatus, setLockStatus] = useState(status);
+  const [justSignedIn, setJustSignedIn] = useState(false);
   if (status !== lockStatus) {
+    setJustSignedIn(lockStatus === 'signedOut' && status === 'signedIn');
     setLockStatus(status);
     setLock(null);
     setUnlocked(false);
@@ -83,28 +86,28 @@ function RootNavigator() {
   // A new account must never see cached screens or balances from the previous
   // session after logout, including data still inside its stale-time window.
   useEffect(() => {
-    if (status === 'signedOut') {
-      queryClient.clear();
-      // The app lock belongs to the person who signed out.
-      void clearAppLock();
-    }
+    if (status === 'signedOut') queryClient.clear();
   }, [status]);
 
   useEffect(() => {
     if (status !== 'loading') SplashScreen.hide();
   }, [status]);
 
-  // Lock on launch (and after signing in) when a PIN or biometrics is set.
+  // Lock on launch when a PIN or biometrics is set. The lock is kept across
+  // sign-out for the same account, and cleared if a different account signs in.
+  const userId = user?.id;
   useEffect(() => {
-    if (status !== 'signedIn') return;
+    if (status !== 'signedIn' || userId === undefined) return;
     let active = true;
-    void getLockSettings().then((settings) => {
-      if (!active) return;
-      setLock(settings);
-      setUnlocked(!isLockEnabled(settings));
-    });
+    void claimAppLock(userId)
+      .then(getLockSettings)
+      .then((settings) => {
+        if (!active) return;
+        setLock(settings);
+        setUnlocked(justSignedIn || !isLockEnabled(settings));
+      });
     return () => { active = false; };
-  }, [status]);
+  }, [status, userId, justSignedIn]);
 
   // Lock again after the app has been in the background for a while. The short
   // grace period keeps quick trips (share sheet, fingerprint prompt) from locking.
@@ -143,7 +146,8 @@ function RootNavigator() {
           settings={lock}
           name={user?.name.split(' ')[0]}
           onUnlock={() => setUnlocked(true)}
-          onSignOut={() => void signOut()}
+          // Forgot PIN: remove it, then sign in again with an email code.
+          onSignOut={() => void clearAppLock().then(signOut)}
         />
       ) : (
         <View className="absolute inset-0 z-50 bg-primary" />

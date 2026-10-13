@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import * as Device from 'expo-device';
 
 import { api } from '@/lib/api-client';
@@ -27,8 +28,12 @@ export const authApi = {
 
 
   /** Emails a 6-digit sign-in code. Works the same for new and existing emails. */
-  async requestEmailCode(email: string): Promise<{ message: string; resendSeconds: number }> {
-    const { data } = await api.post<MessageResponse & { resend_seconds: number }>('/auth/email-code', { email });
+  /**
+   * `intent` makes the server check the account first: sign-in needs an existing
+   * account, sign-up a new email. A mismatch fails with a `reason` (see emailCodeMismatch).
+   */
+  async requestEmailCode(email: string, intent?: 'signin' | 'signup'): Promise<{ message: string; resendSeconds: number }> {
+    const { data } = await api.post<MessageResponse & { resend_seconds: number }>('/auth/email-code', { email, intent });
     return { message: data.message, resendSeconds: data.resend_seconds };
   },
 
@@ -66,3 +71,10 @@ export const authApi = {
     return data.message;
   },
 };
+
+/** Why the server refused to send a code: the email is on the wrong screen. */
+export function emailCodeMismatch(error: unknown): 'no_account' | 'account_exists' | null {
+  if (!isAxiosError<{ reason?: string }>(error) || error.response?.status !== 422) return null;
+  const reason = error.response.data?.reason;
+  return reason === 'no_account' || reason === 'account_exists' ? reason : null;
+}
