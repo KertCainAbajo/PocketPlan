@@ -26,6 +26,22 @@ export const authApi = {
   },
 
 
+  /** Emails a 6-digit sign-in code. Works the same for new and existing emails. */
+  async requestEmailCode(email: string): Promise<{ message: string; resendSeconds: number }> {
+    const { data } = await api.post<MessageResponse & { resend_seconds: number }>('/auth/email-code', { email });
+    return { message: data.message, resendSeconds: data.resend_seconds };
+  },
+
+  /**
+   * Checks the code. Signs in an existing student, or for a new email returns
+   * `needsName` until a name (and accepted terms) is sent with the same code.
+   */
+  async verifyEmailCode(input: { email: string; code: string; name?: string; terms?: boolean }): Promise<{ needsName: true } | { needsName: false; payload: AuthPayload }> {
+    const { data } = await api.post<ApiResource<AuthPayload | { needs_name: true }>>('/auth/email-code/verify', { ...input, device_name: deviceName });
+    if ('needs_name' in data.data) return { needsName: true };
+    return { needsName: false, payload: data.data };
+  },
+
   async me(): Promise<User> {
     const { data } = await api.get<ApiResource<User>>('/me');
     return data.data;

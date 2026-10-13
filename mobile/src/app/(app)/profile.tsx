@@ -2,9 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as LocalAuthentication from 'expo-local-authentication';
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { router, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import {
   Bell,
@@ -24,8 +22,8 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Share, Switch, Text, View } from 'react-native';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { showAlert } from '@/components/app-alert';
@@ -36,12 +34,12 @@ import { accountApi } from '@/features/dashboard/api';
 import { profileApi } from '@/features/profile/api';
 import { getBudgetFrequencyPreference, type BudgetFrequencyPreference } from '@/features/profile/budget-preferences';
 import { currencyName, timezoneLabel } from '@/features/profile/options';
+import { getLockSettings, type LockSettings } from '@/features/security/app-lock';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
-const BIOMETRIC_KEY = 'pocketplan.biometric-unlock';
 const LIGHT_ACCENT = '#AEB8FF';
 
 const money = (amount: number, currency: string) => {
@@ -55,8 +53,7 @@ export default function ProfileScreen() {
   useStatusBarStyle('dark');
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [lock, setLock] = useState<LockSettings | null>(null);
   const [exporting, setExporting] = useState(false);
   const [budgetPeriod, setBudgetPeriod] = useState<BudgetFrequencyPreference | null>(null);
   const currency = user?.currency ?? 'PHP';
@@ -70,35 +67,18 @@ export default function ProfileScreen() {
     ? [notifications.data.daily_warning, notifications.data.threshold_alert, notifications.data.budget_ending, notifications.data.budget_completed, notifications.data.daily_reminder].filter(Boolean).length
     : null;
 
-  useEffect(() => {
-    void SecureStore.getItemAsync(BIOMETRIC_KEY).then((value) => setBiometricEnabled(value === 'true'));
-  }, []);
+  // Refresh the App lock status whenever Profile is shown again.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void getLockSettings().then((settings) => { if (active) setLock(settings); });
+      return () => { active = false; };
+    }, []),
+  );
 
   useEffect(() => {
     if (user?.id) void getBudgetFrequencyPreference(user.id).then(setBudgetPeriod).catch(() => setBudgetPeriod(null));
   }, [user?.id]);
-
-  async function toggleBiometric(value: boolean) {
-    if (busy) return;
-    setBusy(true);
-    try {
-      if (value) {
-        const [hardware, enrolled] = await Promise.all([LocalAuthentication.hasHardwareAsync(), LocalAuthentication.isEnrolledAsync()]);
-        if (!hardware || !enrolled) {
-          showAlert('Biometrics unavailable', 'Set up Face ID or a fingerprint on this device before enabling biometric unlock.', undefined, { tone: 'warning', icon: Fingerprint });
-          return;
-        }
-        const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm biometric unlock', cancelLabel: 'Cancel' });
-        if (!result.success) return;
-      }
-      await SecureStore.setItemAsync(BIOMETRIC_KEY, String(value));
-      setBiometricEnabled(value);
-    } catch (error) {
-      showAlert('Could not update setting', getErrorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function exportData() {
     if (exporting) return;
@@ -225,9 +205,19 @@ export default function ProfileScreen() {
           <Row
             Icon={Fingerprint}
             color="#EC4899"
-            title="Biometric unlock"
-            subtitle={biometricEnabled ? 'On · Fingerprint or face' : 'Off · Use your fingerprint or face'}
-            accessory={<Switch accessibilityLabel="Biometric unlock" value={biometricEnabled} onValueChange={(value) => void toggleBiometric(value)} disabled={busy} trackColor={{ false: '#D9DEEA', true: colors.primary }} thumbColor="white" />}
+            title="App lock"
+            subtitle={
+              !lock
+                ? 'PIN, fingerprint or face'
+                : lock.hasPin && lock.biometrics
+                  ? 'On · PIN and biometrics'
+                  : lock.hasPin
+                    ? 'On · PIN'
+                    : lock.biometrics
+                      ? 'On · Biometrics'
+                      : 'Off · Add a PIN, fingerprint or face'
+            }
+            onPress={() => openSetting('app-lock')}
           />
           <Row Icon={ShieldCheck} color="#243B6B" title="Security" subtitle="Password, devices and account deletion" onPress={() => openSetting('security')} />
           <Row

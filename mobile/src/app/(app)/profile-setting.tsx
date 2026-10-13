@@ -1,7 +1,7 @@
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   AlarmClock,
   Banknote,
@@ -16,14 +16,18 @@ import {
   CircleHelp,
   Clock,
   FileText,
+  Fingerprint,
   Gauge,
+  KeyRound,
   Landmark,
   LockKeyhole,
   Mail,
   MapPin,
   Plus,
+  ScanFace,
   Search,
   ShieldAlert,
+  ShieldCheck,
   Smartphone,
   Sun,
   Trash2,
@@ -32,7 +36,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -57,6 +61,7 @@ import { accountApi, type Account } from '@/features/dashboard/api';
 import { profileApi, type NotificationPreferences } from '@/features/profile/api';
 import { budgetFrequencies, getBudgetFrequencyPreference, setBudgetFrequencyPreference, type BudgetFrequencyPreference } from '@/features/profile/budget-preferences';
 import { CURRENCIES, deviceTimezone, timeIn, TIMEZONES, timezoneLabel } from '@/features/profile/options';
+import { authenticateWithBiometrics, biometricLabel, getBiometricKind, getLockSettings, setBiometrics, type BiometricKind, type LockSettings } from '@/features/security/app-lock';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
@@ -78,6 +83,7 @@ const SECTIONS: Record<string, { title: string; subtitle: string }> = {
   notifications: { title: 'Notifications', subtitle: 'Pick the budget alerts and reminders you want to receive.' },
   'budget-period': { title: 'Budget period', subtitle: 'Choose how often a new spending plan starts by default.' },
   security: { title: 'Security', subtitle: 'Manage your password, signed-in devices and account.' },
+  'app-lock': { title: 'App lock', subtitle: 'Keep PocketPlan private with a PIN, fingerprint or face.' },
   help: { title: 'Help center', subtitle: 'Quick answers, guides and a way to reach us.' },
 };
 
@@ -96,6 +102,7 @@ export default function ProfileSettingScreen() {
         {section === 'notifications' && <NotificationsSection />}
         {section === 'budget-period' && <BudgetPeriodSection />}
         {section === 'security' && <SecuritySection />}
+        {section === 'app-lock' && <AppLockSection />}
         {section === 'help' && <HelpSection />}
       </ScrollView>
     </SafeAreaView>
@@ -866,6 +873,115 @@ function SecuritySection() {
           </View>
         )}
       </View>
+    </>
+  );
+}
+
+/* ───────────────────────────── App lock ───────────────────────────── */
+
+function AppLockSection() {
+  const [settings, setSettings] = useState<LockSettings | null>(null);
+  const [device, setDevice] = useState<{ available: boolean; kind: BiometricKind }>({ available: false, kind: 'none' });
+  const [busy, setBusy] = useState(false);
+
+  // Reload whenever this page is shown again, e.g. after creating a PIN.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void Promise.all([getLockSettings(), getBiometricKind()]).then(([lock, bio]) => {
+        if (!active) return;
+        setSettings(lock);
+        setDevice(bio);
+      });
+      return () => { active = false; };
+    }, []),
+  );
+
+  if (!settings) return <SettingsCard className="mt-6 items-center p-8"><ActivityIndicator color={colors.accent} /></SettingsCard>;
+
+  const on = settings.hasPin || settings.biometrics;
+  const BioIcon = device.kind === 'face' ? ScanFace : Fingerprint;
+  const bioLabel = biometricLabel(device.kind);
+
+  async function toggleBiometrics(value: boolean) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (value && !(await authenticateWithBiometrics(`Turn on ${bioLabel.toLowerCase()}`))) return;
+      await setBiometrics(value);
+      setSettings((current) => (current ? { ...current, biometrics: value } : current));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <View className="mt-6 overflow-hidden rounded-[28px]">
+        <LinearGradient colors={on ? ['#22865D', '#166534', '#0F4A27'] : ['#34539A', colors.primary, '#16254A']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 20 }}>
+          <View pointerEvents="none" className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white opacity-10" />
+          <View className="flex-row items-center">
+            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+              {on ? <ShieldCheck size={26} color="white" /> : <LockKeyhole size={26} color="white" />}
+            </View>
+            <View className="ml-4 flex-1">
+              <Text className="text-[18px] font-bold text-white">{on ? 'App lock is on' : 'App lock is off'}</Text>
+              <Text className="mt-0.5 text-[13px] leading-[18px] text-white/75">
+                {on ? 'PocketPlan asks to unlock when you open it.' : 'Anyone holding your phone can open PocketPlan.'}
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
+      <SectionLabel>PIN code</SectionLabel>
+      {settings.hasPin ? (
+        <SettingsCard className="px-4 py-1">
+          <LinkRow Icon={KeyRound} color={colors.accent} title="Change PIN" detail="Choose a new 4-digit PIN" onPress={() => router.push({ pathname: '/pin-setup', params: { mode: 'change' } })} />
+          <LinkRow Icon={Trash2} color={colors.error} title="Remove PIN" detail="Also turns off fingerprint and face unlock" onPress={() => router.push({ pathname: '/pin-setup', params: { mode: 'remove' } })} last />
+        </SettingsCard>
+      ) : (
+        <SettingsCard className="p-4">
+          <View className="flex-row items-center">
+            <IconTile Icon={KeyRound} color={colors.accent} size={44} />
+            <View className="ml-3 flex-1">
+              <Text className="text-[15px] font-bold text-ink">Create a PIN</Text>
+              <Text className="mt-0.5 text-[12px] leading-[17px] text-muted">A 4-digit code just for PocketPlan, separate from your phone’s.</Text>
+            </View>
+          </View>
+          <PrimaryButton title="Create a PIN" Icon={KeyRound} onPress={() => router.push({ pathname: '/pin-setup', params: { mode: 'create' } })} />
+        </SettingsCard>
+      )}
+
+      <SectionLabel>Biometrics</SectionLabel>
+      <SettingsCard className="px-4 py-1">
+        <View className="min-h-[70px] flex-row items-center gap-3 py-3">
+          <IconTile Icon={BioIcon} color="#EC4899" />
+          <View className="flex-1">
+            <Text className="text-[14px] font-semibold text-ink">{bioLabel}</Text>
+            <Text className="mt-0.5 text-[12px] leading-[17px] text-muted">
+              {!device.available
+                ? 'Set up a fingerprint or face in your phone settings first.'
+                : !settings.hasPin
+                  ? 'Create a PIN first. It’s your backup if biometrics fail.'
+                  : 'Unlock faster without typing your PIN.'}
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel={bioLabel}
+            value={settings.biometrics}
+            disabled={busy || ((!device.available || !settings.hasPin) && !settings.biometrics)}
+            onValueChange={(value) => void toggleBiometrics(value)}
+            trackColor={{ false: '#D9DEEA', true: colors.primary }}
+            thumbColor="white"
+          />
+        </View>
+        {device.kind === 'both' && (
+          <Text className="-mt-1 mb-3 ml-[52px] text-[11px] leading-4 text-muted">Your phone decides whether to scan your fingerprint or face.</Text>
+        )}
+      </SettingsCard>
+
+      <InfoNote text="PocketPlan locks when you open it and after 15 seconds away. Your PIN is stored securely on this phone only, and signing out removes it." />
     </>
   );
 }

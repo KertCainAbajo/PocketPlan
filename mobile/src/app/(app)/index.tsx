@@ -24,6 +24,7 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react-native';
+import { useEffect, useRef } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
@@ -34,6 +35,7 @@ import { BrandMark } from '@/components/brand-mark';
 import { CategoryIcon } from '@/components/category-icon';
 import { FormBanner } from '@/components/ui/form-banner';
 import { dashboardApi, type DashboardData, type DashboardTransaction } from '@/features/dashboard/api';
+import { getLockSettings, hasDismissedSecurePrompt, isLockEnabled } from '@/features/security/app-lock';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
@@ -112,6 +114,17 @@ export default function HomeScreen() {
     queryFn: dashboardApi.get,
     enabled: user?.is_onboarded ?? false,
   });
+
+  // Once per launch after sign-in: suggest a PIN + fingerprint / Face ID if the app has no lock yet.
+  const suggestedLock = useRef(false);
+  const onboarded = user?.is_onboarded ?? false;
+  useEffect(() => {
+    if (!onboarded || suggestedLock.current) return;
+    suggestedLock.current = true;
+    void Promise.all([getLockSettings(), hasDismissedSecurePrompt()]).then(([lock, dismissed]) => {
+      if (!isLockEnabled(lock) && !dismissed) router.push('/secure-app');
+    });
+  }, [onboarded]);
 
   if (user && !user.is_onboarded) return <Redirect href="/onboarding" />;
 

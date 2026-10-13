@@ -14,6 +14,16 @@ return [
     'token_ttl_days' => (int) env('MOBILE_TOKEN_TTL_DAYS', 30),
 
     /*
+    | Passwordless email codes: how long a code lives, how many wrong guesses
+    | cancel it, and how long to wait before another code can be sent.
+    */
+    'email_code' => [
+        'ttl_minutes' => 10,
+        'max_attempts' => 5,
+        'resend_seconds' => 60,
+    ],
+
+    /*
     | ISO 4217 currencies students may choose. Amounts are never converted:
     | the currency only changes how money is displayed.
     */

@@ -4,22 +4,22 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import * as LocalAuthentication from 'expo-local-authentication';
-import * as SecureStore from 'expo-secure-store';
-import { Fingerprint } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AlertHost } from '@/components/app-alert';
+import { AppLockScreen } from '@/components/app-lock-screen';
 import { OfflineNotice } from '@/components/offline-notice';
+import { clearAppLock, getLockSettings, isLockEnabled, type LockSettings } from '@/features/security/app-lock';
 import { setUnauthorizedHandler } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 import { paperTheme } from '@/theme/paper-theme';
 
-const BIOMETRIC_KEY = 'pocketplan.biometric-unlock';
+/** How long the app can be in the background before it locks again. */
+const LOCK_GRACE_MS = 15_000;
 
 // Keep the native (navy) splash screen up until the saved session is checked.
 SplashScreen.preventAutoHideAsync();
@@ -47,21 +47,28 @@ function RootNavigator() {
   const status = useAuthStore((s) => s.status);
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const clearSession = useAuthStore((s) => s.clearSession);
+  const user = useAuthStore((s) => s.user);
+  const signOut = useAuthStore((s) => s.signOut);
+  const [lock, setLock] = useState<LockSettings | null>(null);
   const [unlocked, setUnlocked] = useState(false);
-  const [unlocking, setUnlocking] = useState(false);
   const appState = useRef(AppState.currentState);
+  const backgroundedAt = useRef<number | null>(null);
 
-  async function unlockWithBiometrics() {
-    setUnlocking(true);
-    try {
-      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock PocketPlan', cancelLabel: 'Cancel' });
-      setUnlocked(result.success);
-    } catch {
-      setUnlocked(false);
-    } finally {
-      setUnlocking(false);
-    }
+  // Forget the previous session's lock as soon as the auth status changes, so a
+  // fresh sign-in never shows (or prompts with) the old lock settings.
+  const [lockStatus, setLockStatus] = useState(status);
+  if (status !== lockStatus) {
+    setLockStatus(status);
+    setLock(null);
+    setUnlocked(false);
   }
+
+  /** Reads the saved lock and locks the app if a PIN or biometrics is set. */
+  const lockIfEnabled = useCallback(async () => {
+    const settings = await getLockSettings();
+    setLock(settings);
+    setUnlocked(!isLockEnabled(settings));
+  }, []);
 
   useEffect(() => {
     // Token rejected by the server (expired, revoked, account deactivated).
@@ -76,46 +83,43 @@ function RootNavigator() {
   // A new account must never see cached screens or balances from the previous
   // session after logout, including data still inside its stale-time window.
   useEffect(() => {
-    if (status === 'signedOut') queryClient.clear();
+    if (status === 'signedOut') {
+      queryClient.clear();
+      // The app lock belongs to the person who signed out.
+      void clearAppLock();
+    }
   }, [status]);
 
   useEffect(() => {
     if (status !== 'loading') SplashScreen.hide();
   }, [status]);
 
+  // Lock on launch (and after signing in) when a PIN or biometrics is set.
   useEffect(() => {
-    let cancelled = false;
-    async function checkBiometricLock() {
-      if (status !== 'signedIn') {
-        setUnlocked(true);
-        return;
-      }
-      const enabled = await SecureStore.getItemAsync(BIOMETRIC_KEY).catch(() => null);
-      if (cancelled) return;
-      if (enabled !== 'true') {
-        setUnlocked(true);
-        return;
-      }
-      setUnlocked(false);
-      await unlockWithBiometrics();
-    }
-    void checkBiometricLock();
-    return () => { cancelled = true; };
+    if (status !== 'signedIn') return;
+    let active = true;
+    void getLockSettings().then((settings) => {
+      if (!active) return;
+      setLock(settings);
+      setUnlocked(!isLockEnabled(settings));
+    });
+    return () => { active = false; };
   }, [status]);
 
+  // Lock again after the app has been in the background for a while. The short
+  // grace period keeps quick trips (share sheet, fingerprint prompt) from locking.
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', async (nextState) => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
       const wasBackgrounded = appState.current.match(/inactive|background/) !== null;
       appState.current = nextState;
+      if (nextState === 'background') backgroundedAt.current = Date.now();
       if (status !== 'signedIn' || nextState !== 'active' || !wasBackgrounded) return;
-      const enabled = await SecureStore.getItemAsync(BIOMETRIC_KEY).catch(() => null);
-      if (enabled === 'true') {
-        setUnlocked(false);
-        await unlockWithBiometrics();
-      }
+      const away = backgroundedAt.current ? Date.now() - backgroundedAt.current : 0;
+      backgroundedAt.current = null;
+      if (away >= LOCK_GRACE_MS) void lockIfEnabled();
     });
     return () => subscription.remove();
-  }, [status]);
+  }, [status, lockIfEnabled]);
 
   const signedIn = status === 'signedIn';
 
@@ -133,13 +137,17 @@ function RootNavigator() {
       </Stack>
       {status === 'offline' && <OfflineNotice onRetry={bootstrap} />}
       <AlertHost />
-      {/* Keep Expo Router's navigator mounted while the biometric lock covers it. */}
-      {signedIn && !unlocked && <View className="absolute inset-0 z-50 items-center justify-center bg-background px-8">
-        <View className="h-16 w-16 items-center justify-center rounded-2xl bg-accent-light"><Fingerprint size={30} color={colors.primary} /></View>
-        <Text className="mt-5 text-[22px] font-bold text-primary">PocketPlan is locked</Text>
-        <Text className="mt-2 text-center text-[12px] leading-5 text-muted">Use your device biometrics to continue.</Text>
-        <Pressable accessibilityRole="button" onPress={() => void unlockWithBiometrics()} disabled={unlocking} className="mt-6 min-h-12 w-full items-center justify-center rounded-xl bg-primary"><Text className="text-[12px] font-bold text-white">{unlocking ? 'Checking…' : 'Unlock PocketPlan'}</Text></Pressable>
-      </View>}
+      {/* Keep Expo Router's navigator mounted while the lock covers it. */}
+      {signedIn && !unlocked && (lock ? (
+        <AppLockScreen
+          settings={lock}
+          name={user?.name.split(' ')[0]}
+          onUnlock={() => setUnlocked(true)}
+          onSignOut={() => void signOut()}
+        />
+      ) : (
+        <View className="absolute inset-0 z-50 bg-primary" />
+      ))}
     </>
   );
 }
