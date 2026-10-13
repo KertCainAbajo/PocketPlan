@@ -26,6 +26,7 @@ import Animated, { Extrapolation, interpolate, useAnimatedStyle, type SharedValu
 
 import { showAlert } from '@/components/app-alert';
 import { AuthLayout } from '@/components/auth-layout';
+import { PressableScale } from '@/components/motion';
 import { FormBanner } from '@/components/ui/form-banner';
 import { getErrorMessage } from '@/lib/api-client';
 import { colors } from '@/theme/colors';
@@ -276,23 +277,23 @@ function SwitchCard({ signup }: { signup: boolean }) {
 /** Main action: navy gradient with a soft indigo glow underneath. */
 function GradientButton({ label, Icon, loading, disabled, onPress }: { label: string; Icon: LucideIcon; loading: boolean; disabled?: boolean; onPress: () => void }) {
   return (
-    <View
-      className={`mt-2 overflow-hidden rounded-[20px] ${disabled && !loading ? 'opacity-60' : ''}`}
-      style={{ shadowColor: colors.accent, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6 }}>
+    <PressableScale
+      scaleTo={0.97}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy: loading }}
+      disabled={disabled}
+      onPress={onPress}
+      containerClassName={`mt-2 overflow-hidden rounded-[20px] ${disabled && !loading ? 'opacity-60' : ''}`}
+      containerStyle={{ shadowColor: colors.accent, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6 }}>
       <LinearGradient colors={['#3A55A0', colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          accessibilityState={{ disabled, busy: loading }}
-          disabled={disabled}
-          onPress={onPress}
-          className="h-[58px] flex-row items-center justify-center gap-2.5 active:opacity-85">
+        <View className="h-[58px] flex-row items-center justify-center gap-2.5">
           {loading ? <ActivityIndicator color="white" /> : null}
           <Text className="text-[16px] font-bold text-white">{label}</Text>
           {!loading && <Icon size={18} color="white" strokeWidth={2.3} />}
-        </Pressable>
+        </View>
       </LinearGradient>
-    </View>
+    </PressableScale>
   );
 }
 

@@ -39,6 +39,7 @@ class VerifyEmailLoginCode
             if (! Hash::check($code, $record->code_hash)) {
                 $record->increment('attempts');
                 $left = (int) config('pocketplan.email_code.max_attempts') - $record->attempts;
+
                 return ['error' => ['code' => $left > 0
                     ? "That code is not right. {$left} ".($left === 1 ? 'try' : 'tries').' left.'
                     : 'Too many wrong tries. Request a new code.']];

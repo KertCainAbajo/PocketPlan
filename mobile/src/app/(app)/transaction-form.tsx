@@ -31,6 +31,7 @@ import { currencySymbol } from '@/features/budgets/period';
 import { accountApi, dashboardApi, transactionApi, type TransactionDetails, type TransactionInput } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -55,7 +56,7 @@ const THEME = {
 const todayString = (timezone?: string) => {
   const now = new Date();
   try {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+    const parts = cachedDateTimeFormat('en-US', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
     const part = (type: string) => parts.find((value) => value.type === type)?.value ?? '';
     return `${part('year')}-${part('month')}-${part('day')}`;
   } catch {
@@ -70,7 +71,7 @@ const toDateString = (date: Date) =>
 const nowTime = (timezone?: string) => {
   const now = new Date();
   try {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+    const parts = cachedDateTimeFormat('en-US', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
     const part = (type: string) => parts.find((value) => value.type === type)?.value ?? '00';
     return `${part('hour')}:${part('minute')}`;
   } catch {
@@ -83,7 +84,7 @@ const formatTime = (time: string) => {
   const [hours, minutes] = time.split(':').map(Number);
   const value = new Date();
   value.setHours(hours, minutes, 0, 0);
-  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(value);
+  return cachedDateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(value);
 };
 
 /** Latest selectable date: the end of today in the student's timezone, so today is never greyed out. */
@@ -100,7 +101,7 @@ const formatMoney = (amount: string | number | undefined, currency: string, digi
   const value = Number(amount || 0);
   if (!Number.isFinite(value)) return `${currency} 0.00`;
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+    return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
   } catch {
     return `${currency} ${value.toFixed(digits)}`;
   }
@@ -184,7 +185,7 @@ function TransactionFields({
   const dateValue = new Date(`${date}T12:00:00`);
   const displayDate = Number.isNaN(dateValue.getTime())
     ? date
-    : new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(dateValue);
+    : cachedDateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(dateValue);
   const displayTime = time ? formatTime(time) : '';
   const invalidAmount = !amount.trim() || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || !/^\d+(\.\d{1,2})?$/.test(amount.trim());
   const validationMessage = invalidAmount

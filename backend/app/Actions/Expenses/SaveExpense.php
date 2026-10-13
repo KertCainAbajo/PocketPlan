@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
  * decided by the server from its date, never by the client.
  *
  * @phpstan-type ExpenseInput array{
+ *     account_id?: int|null,
  *     category_id: int,
  *     amount: string,
  *     description: string,

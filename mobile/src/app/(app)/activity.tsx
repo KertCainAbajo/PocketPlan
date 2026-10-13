@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
@@ -16,7 +16,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, TextInput, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,10 +24,12 @@ import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { CategoryIcon } from '@/components/category-icon';
+import { FadeInItem, Skeleton } from '@/components/motion';
 import { FormBanner } from '@/components/ui/form-banner';
 import { accountApi, activityApi, dashboardApi, type ActivityTransaction } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -48,7 +50,7 @@ const money = (amount: string | number | undefined, currency: string | undefined
   const value = Number(amount);
   if (!Number.isFinite(value)) return '—';
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+    return cachedNumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
   } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
@@ -72,23 +74,31 @@ function dayLabel(date: string) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  const subtitle = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(transactionDate);
+  const subtitle = cachedDateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(transactionDate);
   if (dateKey(transactionDate) === dateKey(today)) return { title: 'Today', subtitle };
   if (dateKey(transactionDate) === dateKey(yesterday)) return { title: 'Yesterday', subtitle };
-  return { title: new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(transactionDate), subtitle };
+  return { title: cachedDateTimeFormat(undefined, { weekday: 'long' }).format(transactionDate), subtitle };
 }
 
 export default function ActivityScreen() {
   useStatusBarStyle('dark');
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
+  // Search once typing pauses, not on every letter, so typing stays smooth.
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(search.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [filter, setFilter] = useState<Filter>('All');
   const [showSort, setShowSort] = useState(false);
   const [oldestFirst, setOldestFirst] = useState(false);
 
   const activity = useInfiniteQuery({
-    queryKey: ['activity', search.trim()],
-    queryFn: ({ pageParam }) => activityApi.getPage(pageParam, search),
+    queryKey: ['activity', query],
+    queryFn: ({ pageParam }) => activityApi.getPage(pageParam, query),
+    // Keep showing the previous results while a new search loads, instead of flashing empty.
+    placeholderData: keepPreviousData,
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) => lastPage.hasMore ? pages.length + 1 : undefined,
   });
@@ -121,7 +131,7 @@ export default function ActivityScreen() {
     return result;
   }, [filtered]);
 
-  const currentMonth = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date());
+  const currentMonth = cachedDateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date());
   const data = dashboard.data;
   const currency = data?.currency ?? user?.currency;
   const accountNames = new Map((accounts.data ?? []).map((account) => [account.id, account.name]));
@@ -256,11 +266,11 @@ export default function ActivityScreen() {
             {[0, 1, 2].map((index) => <SkeletonRow key={index} last={index === 2} />)}
           </View>
         ) : groups.length ? (
-          groups.map((group) => {
+          groups.map((group, groupIndex) => {
             const label = dayLabel(group.date);
             const net = group.income - group.expenses;
             return (
-              <View key={group.date} className="mt-6">
+              <FadeInItem key={group.date} index={groupIndex} className="mt-6">
                 <View className="mb-2.5 flex-row items-end justify-between px-1">
                   <View>
                     <Text className="text-[15px] font-bold text-ink">{label.title}</Text>
@@ -281,7 +291,7 @@ export default function ActivityScreen() {
                     />
                   ))}
                 </View>
-              </View>
+              </FadeInItem>
             );
           })
         ) : (
@@ -428,12 +438,12 @@ function ActivityRow({ transaction, currency, accountName, last }: { transaction
 function SkeletonRow({ last }: { last: boolean }) {
   return (
     <View className={`flex-row items-center py-3.5 ${last ? '' : 'border-b border-[#F1F2F7]'}`}>
-      <View className="mr-3 h-11 w-11 rounded-2xl bg-[#EEF0F6]" />
+      <Skeleton className="mr-3 h-11 w-11 rounded-2xl" />
       <View className="flex-1 gap-2">
-        <View className="h-3 w-2/3 rounded-full bg-[#EEF0F6]" />
-        <View className="h-2.5 w-1/3 rounded-full bg-[#F3F4F8]" />
+        <Skeleton className="h-3 w-2/3 rounded-full" />
+        <Skeleton className="h-2.5 w-1/3 rounded-full" />
       </View>
-      <View className="h-3 w-16 rounded-full bg-[#EEF0F6]" />
+      <Skeleton className="h-3 w-16 rounded-full" />
     </View>
   );
 }

@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $note
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Account|null $account
  */
 class SavingsContribution extends Model
 {

@@ -1,3 +1,5 @@
+import { cachedDateTimeFormat } from '@/lib/intl';
+
 /** Currencies the server accepts (config/pocketplan.php). Display only: amounts are never converted. */
 export const CURRENCIES = [
   { code: 'PHP', name: 'Philippine peso', flag: '🇵🇭' },
@@ -46,7 +48,7 @@ export const timezoneLabel = (id: string | undefined) =>
 /** Current local time in a zone, e.g. "8:42 PM". */
 export function timeIn(zone: string) {
   try {
-    return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: zone }).format(new Date());
+    return cachedDateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: zone }).format(new Date());
   } catch {
     return '';
   }

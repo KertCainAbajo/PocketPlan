@@ -45,12 +45,13 @@ class SavingsGoalController extends Controller
                 'reminder_enabled' => $savingsGoal->reminder_enabled,
             ],
             'monthly_progress' => $monthlyProgress,
-            'contributions' => $history->map(fn ($contribution) => [
+            'contributions' => $history->map(fn (SavingsContribution $contribution) => [
                 'id' => $contribution->id,
                 'amount' => Money::format($contribution->amount),
                 'contributed_on' => $contribution->contributed_on->toDateString(),
                 'note' => $contribution->note,
-                'account_name' => $contribution->account?->name ?? 'Everyday account',
+                // The foreign key guarantees the account exists whenever account_id is set.
+                'account_name' => $contribution->account_id !== null ? $contribution->account->name : 'Everyday account',
             ])->values(),
         ]]);
     }

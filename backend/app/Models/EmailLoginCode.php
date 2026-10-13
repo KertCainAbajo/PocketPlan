@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -16,6 +18,8 @@ use Illuminate\Support\Carbon;
  */
 class EmailLoginCode extends Model
 {
+    use MassPrunable;
+
     /** @var list<string> */
     protected $fillable = ['email', 'code_hash', 'expires_at'];
 
@@ -26,6 +30,16 @@ class EmailLoginCode extends Model
     protected function casts(): array
     {
         return ['expires_at' => 'datetime', 'consumed_at' => 'datetime', 'attempts' => 'integer'];
+    }
+
+    /**
+     * Codes are useless once expired; `model:prune` removes them a day later.
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        return static::query()->where('expires_at', '<', now()->subDay());
     }
 
     public function isUsable(): bool

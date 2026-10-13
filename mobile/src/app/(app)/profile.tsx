@@ -29,6 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
+import { FadeInItem } from '@/components/motion';
 import { cardShadow, IconTile } from '@/components/settings-ui';
 import { accountApi } from '@/features/dashboard/api';
 import { profileApi } from '@/features/profile/api';
@@ -37,13 +38,14 @@ import { currencyName, timezoneLabel } from '@/features/profile/options';
 import { getLockSettings, type LockSettings } from '@/features/security/app-lock';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
 const LIGHT_ACCENT = '#AEB8FF';
 
 const money = (amount: number, currency: string) => {
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount); }
   catch { return `${currency} ${amount.toFixed(2)}`; }
 };
 
@@ -58,7 +60,7 @@ export default function ProfileScreen() {
   const [budgetPeriod, setBudgetPeriod] = useState<BudgetFrequencyPreference | null>(null);
   const currency = user?.currency ?? 'PHP';
   const initials = user?.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'PP';
-  const memberSince = user?.created_at ? new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(user.created_at)) : '—';
+  const memberSince = user?.created_at ? cachedDateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(user.created_at)) : '—';
 
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list });
   const notifications = useQuery({ queryKey: ['notification-preferences'], queryFn: profileApi.notifications });
@@ -169,7 +171,7 @@ export default function ProfileScreen() {
         </View>
 
         <SectionTitle>Account</SectionTitle>
-        <Group>
+        <Group index={1}>
           <Row Icon={UserRound} color="#6C7CF7" title="Personal information" subtitle="Name, email and timezone" onPress={() => openSetting('personal')} />
           <Row
             Icon={Wallet}
@@ -182,7 +184,7 @@ export default function ProfileScreen() {
         </Group>
 
         <SectionTitle>Preferences</SectionTitle>
-        <Group>
+        <Group index={2}>
           <Row
             Icon={Bell}
             color="#F59E0B"
@@ -201,7 +203,7 @@ export default function ProfileScreen() {
         </Group>
 
         <SectionTitle>Privacy &amp; security</SectionTitle>
-        <Group>
+        <Group index={3}>
           <Row
             Icon={Fingerprint}
             color="#EC4899"
@@ -232,7 +234,7 @@ export default function ProfileScreen() {
         </Group>
 
         <SectionTitle>Support</SectionTitle>
-        <Group>
+        <Group index={4}>
           <Row Icon={CircleHelp} color="#6C7CF7" title="Help center" subtitle="Answers, guides and getting started" onPress={() => openSetting('help')} />
           <Row Icon={Mail} color="#0EA5E9" title="Contact support" subtitle="A real person, when you need one" onPress={contactSupport} />
           <Row Icon={Share2} color="#10B981" title="Tell a friend" subtitle="Share PocketPlan with classmates" onPress={shareApp} />
@@ -271,8 +273,12 @@ function SectionTitle({ children }: { children: ReactNode }) {
   return <Text className="mb-2.5 ml-1 mt-7 text-[12px] font-bold uppercase tracking-[1px] text-muted">{children}</Text>;
 }
 
-function Group({ children }: { children: ReactNode }) {
-  return <View style={cardShadow} className="rounded-3xl bg-card px-4 py-1">{children}</View>;
+function Group({ index = 0, children }: { index?: number; children: ReactNode }) {
+  return (
+    <FadeInItem index={index}>
+      <View style={cardShadow} className="rounded-3xl bg-card px-4 py-1">{children}</View>
+    </FadeInItem>
+  );
 }
 
 function Row({ Icon, color, title, subtitle, onPress, accessory, last = false }: { Icon: LucideIcon; color: string; title: string; subtitle: string; onPress?: () => void; accessory?: ReactNode; last?: boolean }) {

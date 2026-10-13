@@ -12,11 +12,25 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { ScrollView, Text, View, type ViewStyle } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeInUp,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  ZoomIn,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/brand-mark';
 import { Logo } from '@/components/logo';
+import { Float } from '@/components/motion';
 import { Button } from '@/components/ui/button';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { colors } from '@/theme/colors';
@@ -97,23 +111,66 @@ export default function WelcomeScreen() {
 function BrandHero() {
   return (
     <View className="h-[300px] items-center justify-center" accessible accessibilityLabel="PocketPlan: allowance planned, spending on track, savings growing.">
-      {/* Concentric rings */}
-      <View className="absolute h-[280px] w-[280px] rounded-full border border-white/[0.06]" />
-      <View className="absolute h-[216px] w-[216px] rounded-full border border-white/10 bg-white/[0.03]" />
-      <View className="absolute h-[156px] w-[156px] rounded-full bg-accent opacity-25" />
+      {/* Rings that slowly breathe outward, one after another */}
+      <PulseRing size={280} delay={0} className="border border-white/[0.06]" />
+      <PulseRing size={216} delay={700} className="border border-white/10 bg-white/[0.03]" />
+      <Glow />
 
-      {/* Emblem */}
-      <View style={emblemShadow} className="h-[124px] w-[124px] overflow-hidden rounded-[36px] border border-white/20">
-        <LinearGradient colors={['#3A5BA8', '#1E3366']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Logo size={84} variant="dark" />
-        </LinearGradient>
-      </View>
+      {/* Emblem: pops in, then floats */}
+      <Animated.View entering={ZoomIn.delay(150).springify().damping(13)}>
+        <Float distance={7} duration={3400}>
+          <View style={emblemShadow} className="h-[124px] w-[124px] overflow-hidden rounded-[36px] border border-white/20">
+            <LinearGradient colors={['#3A5BA8', '#1E3366']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Logo size={84} variant="dark" />
+            </LinearGradient>
+          </View>
+        </Float>
+      </Animated.View>
 
-      <StatusCard Icon={CheckCircle2} tint={colors.positiveText} bg={colors.positive} title="Allowance planned" style={{ top: 14, left: 0 }} />
-      <StatusCard Icon={TrendingUp} tint={colors.accent} bg={colors.accentLight} title="Spending on track" style={{ top: 128, right: 0 }} />
-      <StatusCard Icon={Sprout} tint="#B45309" bg={colors.warningBg} title="Savings growing" style={{ bottom: 12, left: 18 }} />
+      <StatusCard Icon={CheckCircle2} tint={colors.positiveText} bg={colors.positive} title="Allowance planned" style={{ top: 14, left: 0 }} index={0} />
+      <StatusCard Icon={TrendingUp} tint={colors.accent} bg={colors.accentLight} title="Spending on track" style={{ top: 128, right: 0 }} index={1} />
+      <StatusCard Icon={Sprout} tint="#B45309" bg={colors.warningBg} title="Savings growing" style={{ bottom: 12, left: 18 }} index={2} />
     </View>
   );
+}
+
+/** A ring that gently grows and fades in a slow loop. */
+function PulseRing({ size, delay, className }: { size: number; delay: number; className: string }) {
+  const reduceMotion = useReducedMotion();
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const timer = setTimeout(() => {
+      t.set(withRepeat(withSequence(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), withTiming(0, { duration: 2600, easing: Easing.inOut(Easing.sin) })), -1));
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [delay, reduceMotion, t]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(t.get(), [0, 1], [1, 0.45]),
+    transform: [{ scale: interpolate(t.get(), [0, 1], [1, 1.06]) }],
+  }));
+
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, borderRadius: size / 2 }, style]} className={className} />;
+}
+
+/** Soft indigo glow behind the emblem that brightens and dims. */
+function Glow() {
+  const reduceMotion = useReducedMotion();
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    t.set(withRepeat(withSequence(withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }), withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.sin) })), -1));
+  }, [reduceMotion, t]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(t.get(), [0, 1], [0.2, 0.38]),
+    transform: [{ scale: interpolate(t.get(), [0, 1], [0.94, 1.08]) }],
+  }));
+
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: 156, height: 156, borderRadius: 78 }, style]} className="bg-accent" />;
 }
 
 const emblemShadow = {
@@ -132,13 +189,17 @@ const cardShadow = {
   elevation: 8,
 };
 
-function StatusCard({ Icon, tint, bg, title, style }: { Icon: LucideIcon; tint: string; bg: string; title: string; style: ViewStyle }) {
+function StatusCard({ Icon, tint, bg, title, style, index }: { Icon: LucideIcon; tint: string; bg: string; title: string; style: ViewStyle; index: number }) {
   return (
-    <View style={[cardShadow, { position: 'absolute' }, style]} className="flex-row items-center gap-2 rounded-2xl bg-white py-2 pl-2 pr-3.5">
-      <View className="h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: bg }}>
-        <Icon size={16} color={tint} strokeWidth={2.3} />
-      </View>
-      <Text className="text-[12px] font-bold text-ink">{title}</Text>
-    </View>
+    <Animated.View entering={ZoomIn.delay(450 + index * 180).springify().damping(12)} style={[{ position: 'absolute' }, style]}>
+      <Float distance={5} duration={2600 + index * 500} delay={index * 400}>
+        <View style={cardShadow} className="flex-row items-center gap-2 rounded-2xl bg-white py-2 pl-2 pr-3.5">
+          <View className="h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: bg }}>
+            <Icon size={16} color={tint} strokeWidth={2.3} />
+          </View>
+          <Text className="text-[12px] font-bold text-ink">{title}</Text>
+        </View>
+      </Float>
+    </Animated.View>
   );
 }

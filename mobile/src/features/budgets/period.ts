@@ -1,3 +1,5 @@
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
+
 export type PeriodFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export const PERIOD_WORD: Record<PeriodFrequency, string> = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' };
@@ -13,8 +15,8 @@ export const QUICK_AMOUNTS: Record<PeriodFrequency, number[]> = {
 
 export const toDateString = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 export const fromDateString = (value: string) => new Date(`${value}T12:00:00`);
-export const longDate = (value: string) => new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(fromDateString(value));
-export const shortDate = (value: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(fromDateString(value));
+export const longDate = (value: string) => cachedDateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(fromDateString(value));
+export const shortDate = (value: string) => cachedDateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(fromDateString(value));
 
 /** Adds months without spilling into the next month (Jan 31 + 1 month = Feb 28), like the server. */
 function addMonthsNoOverflow(date: Date, months: number) {
@@ -38,7 +40,7 @@ export const daysBetween = (start: string, end: string) => Math.round((fromDateS
 
 /** "₱1,500.00" in the student's currency, falling back to "PHP 1500.00" if the device lacks it. */
 export function formatCurrency(amount: number, currency: string, decimals = 2) {
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(amount); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(amount); }
   catch { return `${currency} ${amount.toFixed(decimals)}`; }
 }
 

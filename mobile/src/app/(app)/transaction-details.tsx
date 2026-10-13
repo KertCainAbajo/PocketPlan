@@ -15,6 +15,7 @@ import { FormBanner } from '@/components/ui/form-banner';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { api, getErrorMessage } from '@/lib/api-client';
 import { accountApi, transactionApi, type TransactionDetails } from '@/features/dashboard/api';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -27,7 +28,7 @@ interface BudgetDetails {
 
 const formatMoney = (amount: string, currency: string) => {
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(amount));
+    return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(amount));
   } catch {
     return `${currency} ${Number(amount).toFixed(2)}`;
   }
@@ -147,7 +148,7 @@ function TransactionContent({
   const time = expense ? detail.spent_time : detail.received_time;
   // "October 13, 2026 · 2:30 PM" when a time was recorded, the date alone otherwise.
   const formattedDate = date
-    ? new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric', ...(time ? { hour: 'numeric', minute: '2-digit' } : {}) })
+    ? cachedDateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric', ...(time ? { hour: 'numeric', minute: '2-digit' } : {}) })
       .format(new Date(`${date}T${time ? `${time}:00` : '12:00:00'}`))
       .replace(/,? at /, ' · ')
     : 'Not specified';

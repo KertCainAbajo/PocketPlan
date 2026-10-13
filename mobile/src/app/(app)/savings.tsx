@@ -30,10 +30,12 @@ import Svg, { Circle, Polygon } from 'react-native-svg';
 import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
+import { FadeInItem, Skeleton } from '@/components/motion';
 import { FormBanner } from '@/components/ui/form-banner';
 import { savingsGoalsApi, type SavingsGoal } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -53,7 +55,7 @@ const cardShadow: ViewStyle = {
 const money = (amount: string | number | undefined, currency: string) => {
   const value = Number(amount);
   if (!Number.isFinite(value)) return `— ${currency}`;
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
   catch { return `${currency} ${value.toFixed(2)}`; }
 };
 
@@ -203,11 +205,13 @@ export default function SavingsScreen() {
 
         {goals.isPending ? (
           <View className="mt-4 gap-3">
-            {[0, 1].map((i) => <View key={i} className="h-[170px] rounded-3xl bg-[#E9ECF4]" />)}
+            {[0, 1].map((i) => <Skeleton key={i} className="h-[170px] rounded-3xl" />)}
           </View>
         ) : visibleGoals.length ? (
-          visibleGoals.map((goal) => (
-            <GoalCard key={goal.id} goal={goal} currency={goalCurrency} onOpen={() => openGoal(goal.id)} onContribute={() => openContribution(goal.id)} />
+          visibleGoals.map((goal, index) => (
+            <FadeInItem key={goal.id} index={index}>
+              <GoalCard goal={goal} currency={goalCurrency} onOpen={() => openGoal(goal.id)} onContribute={() => openContribution(goal.id)} />
+            </FadeInItem>
           ))
         ) : (
           <EmptyGoals completed={filter === 'achieved'} onCreate={openCreate} />
@@ -298,7 +302,7 @@ function GoalCard({ goal, currency, onOpen, onContribute }: { goal: SavingsGoal;
   const style = GOAL_STYLE[goal.icon] ?? GOAL_STYLE.laptop;
   const complete = goal.status === 'achieved';
   const accent = complete ? '#10B981' : style.color;
-  const targetDate = goal.target_date ? new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(`${goal.target_date}T12:00:00`)) : 'Flexible target';
+  const targetDate = goal.target_date ? cachedDateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(`${goal.target_date}T12:00:00`)) : 'Flexible target';
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.saved_amount));
   const monthPlan = remaining / (goal.target_date ? monthsUntil(goal.target_date) : 12);
 

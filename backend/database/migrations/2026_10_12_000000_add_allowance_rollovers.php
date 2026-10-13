@@ -52,7 +52,7 @@ return new class extends Migration
                 ->where('user_id', $schedule->user_id)
                 ->where('start_date', $schedule->start_date)
                 ->where('spending_limit', $schedule->amount)
-                ->where('frequency', $schedule->frequency === 'biweekly' ? 'weekly' : $schedule->frequency)
+                ->where('frequency', $schedule->frequency)
                 ->orderBy('id')
                 ->first();
             if ($budget) {

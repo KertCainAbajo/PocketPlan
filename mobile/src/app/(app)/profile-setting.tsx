@@ -64,6 +64,7 @@ import { CURRENCIES, deviceTimezone, timeIn, TIMEZONES, timezoneLabel } from '@/
 import { authenticateWithBiometrics, biometricLabel, getBiometricKind, getLockSettings, setBiometrics, type BiometricKind, type LockSettings } from '@/features/security/app-lock';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -72,7 +73,7 @@ const AMOUNT_PATTERN = /^\d+(\.\d{0,2})?$/;
 
 const money = (amount: string | number, currency: string) => {
   const value = Number(amount);
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value); }
   catch { return `${currency} ${value.toFixed(2)}`; }
 };
 
@@ -127,7 +128,7 @@ function PersonalSection() {
   const emailChanged = email.trim().toLowerCase() !== (user?.email ?? '').toLowerCase();
   const dirty = name.trim() !== user?.name || emailChanged || timezone !== user?.timezone;
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
-  const memberSince = user?.created_at ? new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(user.created_at)) : '—';
+  const memberSince = user?.created_at ? cachedDateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(user.created_at)) : '—';
 
   // Keep the saved zone selectable even if it is not one of the common ones.
   const zones = useMemo(() => {
@@ -544,7 +545,7 @@ function NotificationsSection() {
   const [hours, minutes] = data.reminder_time.split(':').map(Number);
   const reminderDate = new Date();
   reminderDate.setHours(hours || 20, minutes || 0, 0, 0);
-  const reminderLabel = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(reminderDate);
+  const reminderLabel = cachedDateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(reminderDate);
 
   return (
     <>

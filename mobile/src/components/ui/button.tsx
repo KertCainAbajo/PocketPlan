@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native';
 
+import { PressableScale } from '@/components/motion';
 import { colors } from '@/theme/colors';
 
 /** 'inverse' and 'outline-inverse' are for navy backgrounds. */
@@ -39,7 +40,8 @@ export function Button({ label, onPress, variant = 'primary', loading = false, d
   const inactive = disabled || loading;
 
   return (
-    <Pressable
+    <PressableScale
+      scaleTo={0.97}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: inactive, busy: loading }}
@@ -54,6 +56,6 @@ export function Button({ label, onPress, variant = 'primary', loading = false, d
           {Icon ? <Icon size={18} strokeWidth={2.4} color={['primary', 'danger', 'outline-inverse'].includes(variant) ? colors.card : colors.primary} style={{ marginLeft: 8 }} /> : null}
         </>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }

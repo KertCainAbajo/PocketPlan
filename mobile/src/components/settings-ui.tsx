@@ -3,6 +3,7 @@ import { ChevronLeft, Eye, EyeOff, Info, type LucideIcon } from 'lucide-react-na
 import { useState, type ReactNode } from 'react';
 import { Pressable, Text, TextInput, View, type ViewStyle } from 'react-native';
 
+import { PressableScale } from '@/components/motion';
 import { colors } from '@/theme/colors';
 
 /** Soft, navy-tinted elevation shared by the floating cards. */
@@ -109,7 +110,8 @@ export function Field({ label, hint, error, Icon, password = false, prefix, ...i
 export function PrimaryButton({ title, onPress, disabled = false, Icon, tone = 'primary' }: { title: string; onPress: () => void; disabled?: boolean; Icon?: LucideIcon; tone?: 'primary' | 'danger' }) {
   const bg = tone === 'danger' ? 'bg-error' : 'bg-primary';
   return (
-    <Pressable
+    <PressableScale
+      scaleTo={0.97}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       onPress={onPress}
@@ -118,7 +120,7 @@ export function PrimaryButton({ title, onPress, disabled = false, Icon, tone = '
       className={`mt-5 h-[52px] flex-row items-center justify-center gap-2 rounded-2xl ${bg} ${disabled ? 'opacity-45' : 'active:opacity-80'}`}>
       {Icon ? <Icon size={17} color="white" strokeWidth={2.4} /> : null}
       <Text className="text-[15px] font-bold text-white">{title}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 

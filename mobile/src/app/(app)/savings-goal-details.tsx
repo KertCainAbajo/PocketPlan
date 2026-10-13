@@ -1,7 +1,7 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarDays, ChevronRight, Clock3, Flag, GraduationCap, House, Laptop, Pencil, Plane, ShieldCheck, Sparkles, Target, TrendingUp, WalletCards } from 'lucide-react-native';
-import { useState } from 'react';
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarDays, ChevronRight, Clock3, GraduationCap, House, Laptop, Pencil, Plane, ShieldCheck, Sparkles, TrendingUp, WalletCards } from 'lucide-react-native';
+import { createElement, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
@@ -10,19 +10,20 @@ import { FormBanner } from '@/components/ui/form-banner';
 import { savingsGoalsApi, type SavingsGoal } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
 const money = (value: string | number | undefined, currency: string, digits = 2) => {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return `— ${currency}`;
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amount); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amount); }
   catch { return `${currency} ${amount.toFixed(digits)}`; }
 };
 
 const iconFor = (icon: SavingsGoal['icon']) => icon === 'home' ? House : icon === 'travel' ? Plane : icon === 'emergency' ? ShieldCheck : icon === 'education' ? GraduationCap : Laptop;
-const fullDate = (value: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${value}T12:00:00`));
-const shortDate = (value: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${value}T12:00:00`));
+const fullDate = (value: string) => cachedDateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${value}T12:00:00`));
+const shortDate = (value: string) => cachedDateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${value}T12:00:00`));
 
 export default function SavingsGoalDetailsScreen() {
   useStatusBarStyle('dark');
@@ -43,7 +44,6 @@ export default function SavingsGoalDetailsScreen() {
   const history = data?.contributions ?? [];
   const shownHistory = showAllHistory ? history : history.slice(0, 3);
   const maxChart = Math.max(1, ...((data?.monthly_progress ?? []).map((point) => Number(point.amount))));
-  const Icon = goal ? iconFor(goal.icon) : Target;
 
   return <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
     <View className="flex-1">
@@ -57,7 +57,7 @@ export default function SavingsGoalDetailsScreen() {
         {detail.isError && <View className="mt-3"><FormBanner message={getErrorMessage(detail.error)} /></View>}
         {detail.isPending ? <View className="mt-4 rounded-[22px] bg-white p-7"><Text className="text-center text-[12px] text-muted">Loading your goal…</Text></View> : goal && <>
           <View className="mt-4 overflow-hidden rounded-[24px] bg-white p-4">
-            <View className="flex-row items-center justify-between"><View className="flex-row items-center gap-2.5"><View className="h-11 w-11 items-center justify-center rounded-[15px] bg-accent-light"><Icon size={20} color={colors.primary} /></View><View><Text className="text-[9px] font-semibold uppercase tracking-[1px] text-accent">{goal.icon === 'emergency' ? 'Your safety net' : 'A goal worth saving for'}</Text><Text className="mt-0.5 text-[11px] text-muted">Every deposit moves you closer</Text></View></View><View className="flex-row items-center gap-1 rounded-full bg-[#F2F4FF] px-2.5 py-1.5"><Sparkles size={10} color={colors.accent} /><Text className="text-[8px] font-bold text-primary">{Math.floor(progress)}% there</Text></View></View>
+            <View className="flex-row items-center justify-between"><View className="flex-row items-center gap-2.5"><View className="h-11 w-11 items-center justify-center rounded-[15px] bg-accent-light"><GoalIcon icon={goal.icon} /></View><View><Text className="text-[9px] font-semibold uppercase tracking-[1px] text-accent">{goal.icon === 'emergency' ? 'Your safety net' : 'A goal worth saving for'}</Text><Text className="mt-0.5 text-[11px] text-muted">Every deposit moves you closer</Text></View></View><View className="flex-row items-center gap-1 rounded-full bg-[#F2F4FF] px-2.5 py-1.5"><Sparkles size={10} color={colors.accent} /><Text className="text-[8px] font-bold text-primary">{Math.floor(progress)}% there</Text></View></View>
             <View className="mt-4 flex-row items-center justify-center">
               <View className="h-[180px] w-[180px] items-center justify-center">
                 <Svg width={180} height={180} viewBox="0 0 100 100"><Circle cx="50" cy="50" r="43" fill="none" stroke="#EDF0FF" strokeWidth="7" /><Circle cx="50" cy="50" r="43" fill="none" stroke="#697BFF" strokeWidth="7" strokeDasharray={`${2 * Math.PI * 43}`} strokeDashoffset={`${2 * Math.PI * 43 * (1 - progress / 100)}`} strokeLinecap="round" rotation={-90} originX={50} originY={50} /></Svg>
@@ -113,4 +113,9 @@ export default function SavingsGoalDetailsScreen() {
 
 function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return <View className="min-h-[68px] flex-1 flex-row items-center gap-2 rounded-[15px] border border-[#EEF0F6] bg-white px-3"><View className="h-8 w-8 items-center justify-center rounded-xl bg-accent-light">{icon}</View><View className="flex-1"><Text className="text-[8px] text-muted">{label}</Text><Text numberOfLines={1} adjustsFontSizeToFit className="mt-0.5 text-[10px] font-bold text-primary">{value}</Text></View></View>;
+}
+
+/** The goal's icon, chosen by type. A component, so it isn't re-created on every render. */
+function GoalIcon({ icon }: { icon: SavingsGoal['icon'] }) {
+  return createElement(iconFor(icon), { size: 20, color: colors.primary });
 }

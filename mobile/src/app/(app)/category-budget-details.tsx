@@ -8,15 +8,16 @@ import { FormBanner } from '@/components/ui/form-banner';
 import { budgetApi, activityApi } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
 const money = (amount: string | number, currency: string) => {
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(amount)); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(amount)); }
   catch { return `${currency} ${Number(amount).toFixed(2)}`; }
 };
 
-const prettyDate = (date: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`));
+const prettyDate = (date: string) => cachedDateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`));
 
 export default function CategoryBudgetDetailsScreen() {
   useStatusBarStyle('dark');

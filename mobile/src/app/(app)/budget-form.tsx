@@ -12,6 +12,7 @@ import { budgetFrequencies, getBudgetFrequencyPreference, type BudgetFrequencyPr
 import { daysBetween, endDateFor, fromDateString, longDate, PERIOD_LABEL, PERIOD_WORD, QUICK_AMOUNTS, shortDate, toDateString } from '@/features/budgets/period';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -55,7 +56,7 @@ export default function BudgetFormScreen() {
   const belowAssigned = validAmount && value < assigned;
 
   const money = (number: number) => {
-    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number); }
+    try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number); }
     catch { return `${currency} ${number.toFixed(2)}`; }
   };
 

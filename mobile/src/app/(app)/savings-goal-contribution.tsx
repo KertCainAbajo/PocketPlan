@@ -1,7 +1,7 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowLeft, ArrowRight, Check, CircleCheck, Flag, Sparkles, WalletCards } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
@@ -11,17 +11,18 @@ import { currencySymbol } from '@/features/budgets/period';
 import { accountApi, savingsGoalsApi, type Account } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
 const money = (value: string | number | undefined, currency: string) => {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return `— ${currency}`;
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount); }
   catch { return `${currency} ${amount.toFixed(2)}`; }
 };
 
-const todayLabel = () => new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
+const todayLabel = () => cachedDateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
 
 export default function SavingsGoalContributionScreen() {
   useStatusBarStyle('dark');
@@ -31,11 +32,13 @@ export default function SavingsGoalContributionScreen() {
   const currency = useAuthStore((state) => state.user?.currency ?? 'PHP');
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
-  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  // The account the student tapped; until then, the default account is used.
+  const [pickedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
   const detail = useQuery({ queryKey: ['savings-goal', id], queryFn: () => savingsGoalsApi.get(id), enabled: validId });
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: accountApi.list });
+  const selectedAccountId = pickedAccountId ?? (accounts.data?.find((account) => account.is_default) ?? accounts.data?.[0])?.id ?? null;
   const goals = useQuery({ queryKey: ['savings-goals'], queryFn: savingsGoalsApi.list });
   const selectedAccount = accounts.data?.find((account) => account.id === selectedAccountId) ?? null;
   const contributionValue = Number(amount);
@@ -45,9 +48,6 @@ export default function SavingsGoalContributionScreen() {
   const availableBalance = Number(selectedAccount?.balance ?? 0);
   const hasEnoughBalance = !selectedAccount || contributionValue <= availableBalance;
 
-  useEffect(() => {
-    if (!selectedAccountId && accounts.data?.length) setSelectedAccountId((accounts.data.find((account) => account.is_default) ?? accounts.data[0]).id);
-  }, [accounts.data, selectedAccountId]);
 
   const contribute = useMutation({
     mutationFn: () => savingsGoalsApi.contribute(id, { amount: amount.trim(), account_id: selectedAccountId! }),
@@ -66,7 +66,6 @@ export default function SavingsGoalContributionScreen() {
   const updatedAccount = accounts.data?.find((account) => account.id === selectedAccountId);
   const confirmedSaved = Number(updatedGoal?.saved_amount ?? nextSaved);
   const confirmedProgress = goal && Number(goal.target_amount) > 0 ? Math.max(0, Math.min(100, confirmedSaved / Number(goal.target_amount) * 100)) : nextProgress;
-  const updatedAllSaved = goals.data?.total_saved;
   const monthAdded = goals.data?.month_added;
   const canSubmit = validId && Number.isFinite(contributionValue) && contributionValue > 0 && Boolean(selectedAccountId) && hasEnoughBalance && !contribute.isPending;
   const presets = [10, 25, 50].map((percent) => ({ percent, value: Math.floor(availableBalance * percent / 100 * 100) / 100 }));
@@ -104,7 +103,7 @@ export default function SavingsGoalContributionScreen() {
             <SummaryRow label="Date" value={contributionDate} />
             <SummaryRow label="From account" value={selectedAccount?.name ?? 'Everyday account'} />
             <SummaryRow label="Balance after transfer" value={money(updatedAccount?.balance ?? Math.max(0, availableBalance - Number(amount)), currency)} />
-            <SummaryRow label={`${new Intl.DateTimeFormat(undefined, { month: 'long' }).format(new Date())} contributions`} value={money(monthAdded === undefined ? Number(amount) : Number(monthAdded), currency)} />
+            <SummaryRow label={`${cachedDateTimeFormat(undefined, { month: 'long' }).format(new Date())} contributions`} value={money(monthAdded === undefined ? Number(amount) : Number(monthAdded), currency)} />
             <Text className="mt-1 text-[8px] leading-[13px] text-muted">This is a savings transfer. Your expenses and category budgets are unchanged.</Text>
           </View>
 

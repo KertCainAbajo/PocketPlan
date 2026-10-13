@@ -23,10 +23,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { CategoryIcon } from '@/components/category-icon';
+import { Skeleton } from '@/components/motion';
 import { FormBanner } from '@/components/ui/form-banner';
 import { budgetApi, type BudgetItem } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -47,11 +49,11 @@ const cardShadow: ViewStyle = {
 function money(amount: string | number | undefined, currency: string) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return `— ${currency}`;
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
+  try { return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
   catch { return `${currency} ${value.toFixed(2)}`; }
 }
 
-const shortDate = (date: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`));
+const shortDate = (date: string) => cachedDateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`));
 
 /** "Oct 11 – Oct 17": budgets are browsed by their own period, not by calendar month. */
 function periodLabel(budget: BudgetItem) {
@@ -151,7 +153,7 @@ export default function BudgetsScreen() {
         {detail.isError && <View className="mt-4"><FormBanner message={getErrorMessage(detail.error)} /></View>}
 
         {budgets.isPending ? (
-          <View className="mt-5 h-[260px] rounded-[30px] bg-[#E6E9F2]" />
+          <Skeleton className="mt-5 h-[260px] rounded-[30px]" />
         ) : budget ? (
           <>
             {/* Plan hero */}
@@ -407,12 +409,12 @@ function HeroStat({ Icon, label, value }: { Icon: LucideIcon; label: string; val
 function SkeletonRow({ last }: { last: boolean }) {
   return (
     <View className={`flex-row items-center py-4 ${last ? '' : 'border-b border-[#F1F2F7]'}`}>
-      <View className="mr-3 h-11 w-11 rounded-2xl bg-[#EEF0F6]" />
+      <Skeleton className="mr-3 h-11 w-11 rounded-2xl" />
       <View className="flex-1 gap-2">
-        <View className="h-3 w-1/2 rounded-full bg-[#EEF0F6]" />
-        <View className="h-2.5 w-1/3 rounded-full bg-[#F3F4F8]" />
+        <Skeleton className="h-3 w-1/2 rounded-full" />
+        <Skeleton className="h-2.5 w-1/3 rounded-full" />
       </View>
-      <View className="h-3 w-16 rounded-full bg-[#EEF0F6]" />
+      <Skeleton className="h-3 w-16 rounded-full" />
     </View>
   );
 }

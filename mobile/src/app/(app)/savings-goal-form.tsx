@@ -27,6 +27,7 @@ import { currencySymbol } from '@/features/budgets/period';
 import { savingsGoalsApi, type SavingsGoal } from '@/features/dashboard/api';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -66,12 +67,12 @@ function tomorrow() {
 
 function formatDate(value: string) {
   const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(year, month - 1, day, 12));
+  return cachedDateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(year, month - 1, day, 12));
 }
 
 function formatMoney(value: number, currency: string, fractionDigits = 2) {
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(value);
+    return cachedNumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(value);
   } catch {
     return `${currency} ${value.toFixed(fractionDigits)}`;
   }

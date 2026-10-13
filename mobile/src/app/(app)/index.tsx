@@ -33,11 +33,13 @@ import { showAlert } from '@/components/app-alert';
 import { AppBottomBar } from '@/components/app-bottom-bar';
 import { BrandMark } from '@/components/brand-mark';
 import { CategoryIcon } from '@/components/category-icon';
+import { FadeInItem, PressableScale } from '@/components/motion';
 import { FormBanner } from '@/components/ui/form-banner';
 import { dashboardApi, type DashboardData, type DashboardTransaction } from '@/features/dashboard/api';
 import { getLockSettings, hasDismissedSecurePrompt, isLockEnabled } from '@/features/security/app-lock';
 import { useStatusBarStyle } from '@/hooks/use-status-bar-style';
 import { getErrorMessage } from '@/lib/api-client';
+import { cachedDateTimeFormat, cachedNumberFormat } from '@/lib/intl';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 
@@ -61,7 +63,7 @@ const money = (amount: string | null | undefined, currency: string | undefined) 
   const value = Number(amount);
   if (!Number.isFinite(value)) return '—';
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+    return cachedNumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
   } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
@@ -69,7 +71,7 @@ const money = (amount: string | null | undefined, currency: string | undefined) 
 
 /** Calendar dates from the API are plain YYYY-MM-DD; read them at midday so no timezone shifts the day. */
 const day = (date: string) => new Date(`${date}T12:00:00`);
-const shortDate = (date: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(day(date));
+const shortDate = (date: string) => cachedDateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(day(date));
 const daysBetween = (from: string, to: string) => Math.round((day(to).getTime() - day(from).getTime()) / DAY_MS);
 
 const relativeDate = (date: string, today: string | undefined) => {
@@ -85,7 +87,7 @@ const greeting = (timezone?: string) => {
   let hour = new Date().getHours();
   if (timezone) {
     try {
-      const part = new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: timezone })
+      const part = cachedDateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: timezone })
         .formatToParts(new Date())
         .find((p) => p.type === 'hour')?.value;
       if (part !== undefined) hour = Number(part);
@@ -131,7 +133,7 @@ export default function HomeScreen() {
   const data = dashboard.data;
   const currency = data?.currency ?? user?.currency;
   const name = data?.greeting_name ?? user?.name.split(' ')[0] ?? 'there';
-  const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(
+  const dateLabel = cachedDateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(
     data?.today ? day(data.today) : new Date(),
   );
   const openComingSoon = (feature: string) => showAlert(feature, 'We’re still building this. It will be ready soon.', undefined, { icon: Sparkles });
@@ -183,17 +185,19 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <View className="mt-5">
+        <FadeInItem index={0} className="mt-5">
           <HeroCard data={data} currency={currency} loading={dashboard.isPending} />
-        </View>
+        </FadeInItem>
 
         {/* Quick actions float over the bottom edge of the hero. */}
-        <View style={cardShadow} className="mx-2 -mt-9 flex-row justify-between rounded-3xl bg-card px-3 py-3.5">
+        <FadeInItem index={1} className="mx-2 -mt-9">
+        <View style={cardShadow} className="flex-row justify-between rounded-3xl bg-card px-3 py-3.5">
           <QuickAction label="Expense" a11y="Add expense" Icon={Minus} tint={colors.primary} bg="#E8ECF6" onPress={() => router.push({ pathname: '/transaction-form', params: { type: 'expense' } })} />
           <QuickAction label="Income" a11y="Add income" Icon={Plus} tint={colors.positiveText} bg={colors.positive} onPress={() => router.push({ pathname: '/transaction-form', params: { type: 'income' } })} />
           <QuickAction label="Budget" a11y="Open budgets" Icon={ChartNoAxesColumn} tint={colors.accent} bg={colors.accentLight} onPress={() => router.navigate('/budgets')} />
           <QuickAction label="Goals" a11y="Open goals" Icon={Flag} tint={colors.warningText} bg={colors.warningBg} onPress={() => router.navigate('/savings')} />
         </View>
+        </FadeInItem>
 
         {/* Shown while the student is still getting started (few transactions so far). */}
         {data && data.recent_transactions.length < 3 && (
@@ -216,23 +220,27 @@ export default function HomeScreen() {
         )}
 
         {/* This month */}
-        <SectionTitle title="This month" />
-        <MonthCard data={data} currency={currency} />
+        <FadeInItem index={2}>
+          <SectionTitle title="This month" />
+          <MonthCard data={data} currency={currency} />
+        </FadeInItem>
 
         {/* Plan */}
-        <SectionTitle title="Your plan" action="View budgets" onAction={() => router.navigate('/budgets')} />
-        <PlanCard budget={data?.budget ?? null} currency={currency} today={data?.today} />
+        <FadeInItem index={3}>
+          <SectionTitle title="Your plan" action="View budgets" onAction={() => router.navigate('/budgets')} />
+          <PlanCard budget={data?.budget ?? null} currency={currency} today={data?.today} />
+        </FadeInItem>
 
         {/* Top categories */}
         {data && data.category_breakdown.length > 0 && (
-          <>
+          <FadeInItem index={4}>
             <SectionTitle title="Where your money goes" />
             <BreakdownCard categories={data.category_breakdown} currency={currency} />
-          </>
+          </FadeInItem>
         )}
 
         {/* Savings */}
-        <View className="mt-7 overflow-hidden rounded-3xl">
+        <FadeInItem index={5} className="mt-7 overflow-hidden rounded-3xl">
           <LinearGradient colors={['#1F7A55', '#166534']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <Pressable accessibilityRole="button" onPress={() => router.navigate('/savings')} className="p-[18px] active:opacity-85">
               <View pointerEvents="none" className="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white opacity-10" />
@@ -252,9 +260,10 @@ export default function HomeScreen() {
               <Text className="mt-3 text-xs text-white/70">See what you saved in each allowance period</Text>
             </Pressable>
           </LinearGradient>
-        </View>
+        </FadeInItem>
 
         {/* Recent activity */}
+        <FadeInItem index={6}>
         <SectionTitle title="Recent activity" action="See all" onAction={() => router.navigate('/activity')} />
         <View style={cardShadow} className="rounded-3xl bg-card px-4 py-1">
           {data?.recent_transactions.length ? (
@@ -271,6 +280,7 @@ export default function HomeScreen() {
             <EmptyState Icon={ArrowLeftRight} title="No activity yet" body="Your income and expenses will appear here." />
           )}
         </View>
+        </FadeInItem>
       </ScrollView>
 
       <AppBottomBar active="home" />
@@ -399,12 +409,12 @@ function HeroStat({ Icon, label, value }: { Icon: LucideIcon; label: string; val
 
 function QuickAction({ label, a11y, Icon, tint, bg, onPress }: { label: string; a11y: string; Icon: LucideIcon; tint: string; bg: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={a11y} onPress={onPress} className="flex-1 items-center active:opacity-70">
+    <PressableScale scaleTo={0.9} containerClassName="flex-1" accessibilityRole="button" accessibilityLabel={a11y} onPress={onPress} className="items-center">
       <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px]" style={{ backgroundColor: bg }}>
         <Icon size={22} color={tint} strokeWidth={2.2} />
       </View>
       <Text className="mt-2 text-xs font-semibold text-ink">{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -441,7 +451,7 @@ function MonthCard({ data, currency }: { data: DashboardData | undefined; curren
   const net = Number(data?.this_month.net ?? income - expenses);
   const total = income + expenses;
   const incomeShare = total > 0 ? (income / total) * 100 : 0;
-  const monthLabel = new Intl.DateTimeFormat(undefined, { month: 'long' }).format(data?.today ? day(data.today) : new Date());
+  const monthLabel = cachedDateTimeFormat(undefined, { month: 'long' }).format(data?.today ? day(data.today) : new Date());
 
   return (
     <View style={cardShadow} className="rounded-3xl bg-card p-4">
