@@ -10,7 +10,10 @@ fi
 
 php artisan config:cache
 php artisan route:cache
-php artisan view:cache
+# No Blade templates in this app (the admin panel is static), and Git doesn't keep the empty folder.
+if [ -n "$(ls -A resources/views 2>/dev/null)" ]; then
+    php artisan view:cache
+fi
 
 php artisan migrate --force
 # Default categories and the admin account (from ADMIN_* env vars); safe to run every start.
