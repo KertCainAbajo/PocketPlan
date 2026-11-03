@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PocketPlan — Budgeting for students</title>
+  <meta name="description" content="PocketPlan helps students track allowance, expenses and savings goals. Free for Android.">
+  <meta property="og:title" content="PocketPlan — Budgeting for students">
+  <meta property="og:description" content="Track your allowance, spending and savings goals. Free for Android.">
+  <meta property="og:image" content="assets/icon.png">
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #243B6B;
+      --primary-deep: #172848;
+      --accent: #6C7CF7;
+      --accent-light: #EEF0FF;
+      --bg: #F7F8FC;
+      --card: #FFFFFF;
+      --text: #202534;
+      --muted: #687086;
+      --border: #E5E7EB;
+      --green: #166534;
+      --green-bg: #DDF7E8;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    img { max-width: 100%; display: block; }
+    .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+
+    /* Nav */
+    .nav { position: absolute; inset: 0 0 auto; z-index: 10; }
+    .nav .wrap { display: flex; align-items: center; justify-content: space-between; padding-block: 20px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: #fff; text-decoration: none; font-size: 1.15rem; }
+    .brand img { width: 36px; height: 36px; border-radius: 10px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { color: rgba(255,255,255,.8); text-decoration: none; font-weight: 500; font-size: .95rem; }
+    .nav-links a:hover { color: #fff; }
+
+    /* Hero */
+    .hero {
+      position: relative; overflow: hidden; color: #fff;
+      background: radial-gradient(900px 500px at 85% -10%, rgba(108,124,247,.45), transparent 60%),
+                  linear-gradient(160deg, var(--primary) 0%, var(--primary-deep) 100%);
+      padding: 128px 0 96px;
+    }
+    .hero::after {
+      content: ""; position: absolute; width: 520px; height: 520px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.08); right: -160px; bottom: -260px;
+    }
+    .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); font-size: .85rem; font-weight: 600;
+    }
+    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 10px #4ADE80; }
+    h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -.03em; margin: 20px 0 16px; font-weight: 800; }
+    h1 span { color: #B9C2FF; }
+    .lead { font-size: 1.15rem; color: rgba(255,255,255,.78); max-width: 34rem; margin: 0 0 32px; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px; padding: 15px 26px; border-radius: 14px;
+      font-weight: 700; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .btn:focus-visible { outline: 3px solid #B9C2FF; outline-offset: 3px; }
+    .btn-primary { background: #fff; color: var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(0,0,0,.3); }
+    .btn-ghost { color: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .btn-ghost:hover { background: rgba(255,255,255,.08); }
+    .btn svg { width: 20px; height: 20px; }
+    .meta { margin-top: 18px; font-size: .85rem; color: rgba(255,255,255,.6); }
+
+    .phone {
+      justify-self: center; width: min(300px, 80vw); padding: 12px; border-radius: 44px;
+      background: #0d1526; box-shadow: 0 40px 80px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.08);
+      transform: rotate(3deg);
+    }
+    .phone img { width: 100%; height: auto; border-radius: 34px; }
+
+    /* Sections */
+    section { padding: 88px 0; }
+    .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: .8rem; }
+    h2 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); line-height: 1.2; letter-spacing: -.02em; margin: 8px 0 12px; }
+    .section-lead { color: var(--muted); max-width: 40rem; margin: 0 0 48px; font-size: 1.05rem; }
+    .center { text-align: center; }
+    .center .section-lead, .section-lead.center { margin-inline: auto; }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature {
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .feature:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(36,59,107,.1); }
+    .icon {
+      width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
+      background: var(--accent-light); color: var(--primary); margin-bottom: 18px;
+    }
+    .icon svg { width: 24px; height: 24px; }
+    .feature h3 { margin: 0 0 6px; font-size: 1.1rem; }
+    .feature p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; }
+    .step { position: relative; padding: 28px; border-radius: 20px; background: var(--accent-light); }
+    .step::before {
+      counter-increment: step; content: counter(step);
+      display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px;
+      background: var(--primary); color: #fff; font-weight: 800; margin-bottom: 16px;
+    }
+    .step h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .step p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+    .tech { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .tech span {
+      padding: 8px 16px; border-radius: 999px; background: var(--card); border: 1px solid var(--border);
+      font-weight: 600; font-size: .9rem; color: var(--primary);
+    }
+
+    .download {
+      color: #fff; border-radius: 28px; padding: 56px 32px; text-align: center;
+      background: radial-gradient(600px 300px at 50% 0%, rgba(108,124,247,.5), transparent 70%),
+                  linear-gradient(160deg, var(--primary), var(--primary-deep));
+    }
+    .download h2 { color: #fff; }
+    .download p { color: rgba(255,255,255,.75); margin: 0 auto 28px; max-width: 34rem; }
+    .install-note {
+      margin: 28px auto 0; max-width: 34rem; text-align: left; font-size: .9rem; color: rgba(255,255,255,.75);
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 16px 20px;
+    }
+    .install-note ol { margin: 6px 0 0; padding-left: 20px; }
+
+    footer { padding: 32px 0 48px; color: var(--muted); font-size: .9rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+
+    @media (max-width: 860px) {
+      .hero { padding: 112px 0 72px; }
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .lead { margin-inline: auto; }
+      .cta-row { justify-content: center; }
+      .phone { transform: none; }
+      .features, .steps { grid-template-columns: 1fr; }
+      .nav-links a:not(.nav-cta) { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="#"><img src="assets/icon.png" alt="">PocketPlan</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a class="nav-cta" href="#download">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="pill"><span class="dot"></span> Free for Android</span>
+          <h1>Make every <span>allowance</span> last the whole month.</h1>
+          <p class="lead">PocketPlan helps students track spending, set budgets and save for goals — with sign-in by email code and a PIN or fingerprint lock.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="#download">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+              Download for Android
+            </a>
+            <a class="btn btn-ghost" href="#features">See features</a>
+          </div>
+          <p class="meta">For Android phones · No bank login · Your data stays private</p>
+        </div>
+        <div class="phone">
+          <img src="assets/screen-signup.png" alt="PocketPlan's create-account screen on an Android phone" width="1080" height="2400">
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <p class="eyebrow center">Features</p>
+        <h2 class="center">Everything you need to stay on budget</h2>
+        <p class="section-lead center">Built for students living on an allowance — simple enough to use every day.</p>
+        <div class="features">
+          <article class="feature">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div>
+            <h3>Spending dashboard</h3>
+            <p>See today's spending, your balance and where your money goes, at a glance.</p>
+          </article>
+          <article class="feature">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18"/></svg></div>
+            <h3>Budgets that warn you</h3>
+            <p>Set daily, weekly or monthly limits per category and get an alert before you overspend.</p>
+          </article>
+          <article class="feature">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+            <h3>Savings goals</h3>
+            <p>Save toward a new phone, a trip or an emergency fund, and watch your progress grow.</p>
+          </article>
+          <article class="feature">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+            <h3>Recurring allowance</h3>
+            <p>Add your weekly or monthly allowance once and PocketPlan records it for you.</p>
+          </article>
+          <article class="feature">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+            <h3>PIN &amp; fingerprint lock</h3>
+            <p>Keep your finances private with a 4-digit PIN or your fingerprint.</p>
+          </article>
+          <article class="feature">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+            <h3>No password needed</h3>
+            <p>Sign in with a 6-digit code sent to your email. Nothing to remember.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" style="background: var(--card); border-block: 1px solid var(--border);">
+      <div class="wrap">
+        <p class="eyebrow center">How it works</p>
+        <h2 class="center">Up and running in a minute</h2>
+        <p class="section-lead center">No bank account to link and nothing to set up.</p>
+        <div class="steps">
+          <div class="step"><h3>Sign up with your email</h3><p>Enter your email, type the code we send you, and add your name.</p></div>
+          <div class="step"><h3>Add your allowance</h3><p>Record your income and set a budget for the week or month.</p></div>
+          <div class="step"><h3>Log as you spend</h3><p>Add expenses in seconds and let PocketPlan keep you on track.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap center">
+        <p class="eyebrow">Built with</p>
+        <h2>The tech behind it</h2>
+        <p class="section-lead">A full-stack project: a mobile app and a secure REST API.</p>
+        <div class="tech">
+          <span>React Native</span><span>Expo</span><span>TypeScript</span><span>Laravel 12</span><span>PHP 8</span><span>MySQL</span><span>Sanctum auth</span><span>REST API</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="download">
+      <div class="wrap">
+        <div class="download">
+          <h2>Get PocketPlan for Android</h2>
+          <p>Free download. Install it directly — no Play Store account needed.</p>
+          <a class="btn btn-primary" href="https://github.com/KertCainAbajo/PocketPlan/releases/latest/download/PocketPlan.apk" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download APK
+          </a>
+          <div class="install-note">
+            <strong>Installing on your phone</strong>
+            <ol>
+              <li>Tap <em>Download APK</em> and open the file when it finishes.</li>
+              <li>If asked, allow your browser to <em>install unknown apps</em>.</li>
+              <li>Tap <em>Install</em>, then open PocketPlan.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© <span id="year"></span> PocketPlan · Made by Kert Cain Abajo</span>
+      <a href="https://github.com/KertCainAbajo/PocketPlan">View source on GitHub</a>
+    </div>
+  </footer>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

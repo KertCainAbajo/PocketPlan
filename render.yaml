@@ -1,6 +1,15 @@
 # Render Blueprint: free hosting for the PocketPlan API.
 # Render → New → Blueprint → pick this repo. Fill in the values marked "sync: false" when asked.
 services:
+  # Landing page with the APK download button. Free, and static sites never sleep.
+  - type: web
+    name: pocketplan
+    runtime: static
+    rootDir: landing
+    buildCommand: ""
+    staticPublishPath: .
+    autoDeploy: true
+
   - type: web
     name: pocketplan-api
     runtime: docker
