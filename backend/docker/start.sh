@@ -17,7 +17,8 @@ fi
 
 php artisan migrate --force
 # Default categories and the admin account (from ADMIN_* env vars); safe to run every start.
-php artisan db:seed --force
+php artisan db:seed --force \
+    || echo "WARNING: seeding failed (check ADMIN_EMAIL / ADMIN_PASSWORD). Starting the API anyway." >&2
 
 # Recurring allowances and cleanup, while the service is awake.
 php artisan schedule:work > /dev/null 2>&1 &
