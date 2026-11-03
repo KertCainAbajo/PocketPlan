@@ -1,277 +1,619 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>document.documentElement.classList.add('js');</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PocketPlan — Budgeting for students</title>
   <meta name="description" content="PocketPlan helps students track allowance, expenses and savings goals. Free for Android.">
+  <meta name="theme-color" content="#070C1C">
   <meta property="og:title" content="PocketPlan — Budgeting for students">
   <meta property="og:description" content="Track your allowance, spending and savings goals. Free for Android.">
   <meta property="og:image" content="assets/icon.png">
   <link rel="icon" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #243B6B;
-      --primary-deep: #172848;
-      --accent: #6C7CF7;
-      --accent-light: #EEF0FF;
-      --bg: #F7F8FC;
-      --card: #FFFFFF;
-      --text: #202534;
-      --muted: #687086;
-      --border: #E5E7EB;
-      --green: #166534;
-      --green-bg: #DDF7E8;
+      --bg: #070C1C;
+      --bg-2: #0B1226;
+      --surface: rgba(255,255,255,.04);
+      --surface-2: rgba(255,255,255,.07);
+      --line: rgba(255,255,255,.09);
+      --line-2: rgba(255,255,255,.16);
+      --text: #EEF1FF;
+      --muted: #9AA3C2;
+      --dim: #6B7392;
+      --navy: #243B6B;
+      --indigo: #6C7CF7;
+      --indigo-2: #8B97FF;
+      --violet: #A78BFA;
+      --sky: #67E8F9;
+      --mint: #4ADE80;
+      --amber: #FBBF24;
+      --rose: #FB7185;
+      --radius: 22px;
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      color: var(--text);
       background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
     a { color: inherit; }
     img { max-width: 100%; display: block; }
-    .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+    h1, h2, h3 { font-family: "Plus Jakarta Sans", Inter, sans-serif; letter-spacing: -.025em; }
+    .wrap { width: min(1180px, 100% - 32px); margin-inline: auto; }
+    .grad {
+      background: linear-gradient(100deg, #C7CEFF 0%, var(--indigo-2) 35%, var(--violet) 65%, var(--sky) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: shine 8s linear infinite;
+    }
+    @keyframes shine { to { background-position: 200% center; } }
 
-    /* Nav */
-    .nav { position: absolute; inset: 0 0 auto; z-index: 10; }
-    .nav .wrap { display: flex; align-items: center; justify-content: space-between; padding-block: 20px; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: #fff; text-decoration: none; font-size: 1.15rem; }
-    .brand img { width: 36px; height: 36px; border-radius: 10px; }
-    .nav-links { display: flex; gap: 24px; align-items: center; }
-    .nav-links a { color: rgba(255,255,255,.8); text-decoration: none; font-weight: 500; font-size: .95rem; }
-    .nav-links a:hover { color: #fff; }
+    /* ------------------------------------------------------------ Background */
+    .aurora { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; }
+    .aurora span {
+      position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55;
+      animation: drift 22s ease-in-out infinite alternate;
+    }
+    .aurora .a1 { width: 620px; height: 620px; background: #3B4BD8; top: -220px; left: -160px; }
+    .aurora .a2 { width: 520px; height: 520px; background: #7C3AED; top: 10%; right: -200px; animation-delay: -6s; opacity: .4; }
+    .aurora .a3 { width: 460px; height: 460px; background: #0EA5E9; top: 55%; left: 30%; animation-delay: -12s; opacity: .22; }
+    @keyframes drift {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(60px, 40px) scale(1.08); }
+      100% { transform: translate(-40px, 80px) scale(.95); }
+    }
+    .grid-bg {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+      opacity: .5;
+    }
 
-    /* Hero */
-    .hero {
-      position: relative; overflow: hidden; color: #fff;
-      background: radial-gradient(900px 500px at 85% -10%, rgba(108,124,247,.45), transparent 60%),
-                  linear-gradient(160deg, var(--primary) 0%, var(--primary-deep) 100%);
-      padding: 128px 0 96px;
-    }
-    .hero::after {
-      content: ""; position: absolute; width: 520px; height: 520px; border-radius: 50%;
-      border: 1px solid rgba(255,255,255,.08); right: -160px; bottom: -260px;
-    }
-    .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
-    .pill {
-      display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
-      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); font-size: .85rem; font-weight: 600;
-    }
-    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 10px #4ADE80; }
-    h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -.03em; margin: 20px 0 16px; font-weight: 800; }
-    h1 span { color: #B9C2FF; }
-    .lead { font-size: 1.15rem; color: rgba(255,255,255,.78); max-width: 34rem; margin: 0 0 32px; }
-    .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    /* ------------------------------------------------------------ Nav */
+    .nav { position: fixed; inset: 0 0 auto; z-index: 50; transition: background .3s, border-color .3s, backdrop-filter .3s; border-bottom: 1px solid transparent; }
+    .nav.scrolled { background: rgba(7,12,28,.72); backdrop-filter: blur(16px) saturate(140%); border-color: var(--line); }
+    .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+    .brand img { width: 36px; height: 36px; border-radius: 10px; box-shadow: 0 0 0 1px var(--line-2), 0 8px 24px rgba(108,124,247,.35); }
+    .nav-links { display: flex; align-items: center; gap: 30px; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: .95rem; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links a.btn { color: #fff; }
+
+    /* ------------------------------------------------------------ Buttons */
     .btn {
-      display: inline-flex; align-items: center; gap: 10px; padding: 15px 26px; border-radius: 14px;
-      font-weight: 700; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+      position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 15px 26px; border-radius: 14px;
+      font-weight: 600; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; white-space: nowrap;
     }
-    .btn:focus-visible { outline: 3px solid #B9C2FF; outline-offset: 3px; }
-    .btn-primary { background: #fff; color: var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(0,0,0,.3); }
-    .btn-ghost { color: #fff; border: 1px solid rgba(255,255,255,.3); }
-    .btn-ghost:hover { background: rgba(255,255,255,.08); }
-    .btn svg { width: 20px; height: 20px; }
-    .meta { margin-top: 18px; font-size: .85rem; color: rgba(255,255,255,.6); }
+    .btn svg { width: 20px; height: 20px; flex: none; }
+    .btn:focus-visible { outline: 2px solid var(--indigo-2); outline-offset: 3px; }
+    .btn-glow {
+      color: #fff; background: linear-gradient(135deg, #6C7CF7, #8B5CF6);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.15) inset, 0 10px 40px -8px rgba(124,92,246,.7);
+    }
+    .btn-glow::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,.35) 50%, transparent 80%);
+      background-size: 250% 100%; animation: sweep 3.5s ease-in-out infinite;
+    }
+    @keyframes sweep { 0% { background-position: 150% 0; } 60%, 100% { background-position: -100% 0; } }
+    .btn-glow:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(255,255,255,.2) inset, 0 16px 50px -8px rgba(124,92,246,.85); }
+    .btn-line { color: var(--text); background: var(--surface); border: 1px solid var(--line-2); backdrop-filter: blur(8px); }
+    .btn-line:hover { background: var(--surface-2); }
+    .btn-sm { padding: 10px 18px; font-size: .9rem; border-radius: 12px; }
 
+    /* ------------------------------------------------------------ Hero */
+    .hero { position: relative; padding: 150px 0 90px; overflow-x: clip; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--line-2); font-size: .85rem; color: var(--muted); backdrop-filter: blur(8px);
+    }
+    .badge b { padding: 3px 10px; border-radius: 999px; background: linear-gradient(135deg, #6C7CF7, #8B5CF6); color: #fff; font-size: .75rem; font-weight: 700; }
+    h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: 1.02; margin: 22px 0 22px; font-weight: 800; }
+    .lead { font-size: 1.15rem; color: var(--muted); max-width: 33rem; margin: 0 0 34px; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 14px; }
+    .trust { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 30px; color: var(--dim); font-size: .88rem; }
+    .trust span { display: inline-flex; align-items: center; gap: 8px; }
+    .trust svg { width: 16px; height: 16px; color: var(--mint); }
+
+    /* Phone stage */
+    .stage { position: relative; height: 640px; perspective: 1200px; }
+    .stage .halo {
+      position: absolute; inset: 50% auto auto 50%; width: 460px; height: 460px; translate: -50% -50%;
+      border-radius: 50%; background: conic-gradient(from 0deg, #6C7CF7, #A78BFA, #67E8F9, #6C7CF7);
+      filter: blur(60px); opacity: .35; animation: spin 18s linear infinite;
+    }
+    @keyframes spin { to { rotate: 360deg; } }
+    .ring { position: absolute; inset: 50% auto auto 50%; translate: -50% -50%; border-radius: 50%; border: 1px dashed var(--line-2); }
+    .ring.r1 { width: 520px; height: 520px; animation: spin 60s linear infinite; }
+    .ring.r2 { width: 640px; height: 640px; border-style: solid; border-color: var(--line); }
     .phone {
-      justify-self: center; width: min(300px, 80vw); padding: 12px; border-radius: 44px;
-      background: #0d1526; box-shadow: 0 40px 80px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.08);
-      transform: rotate(3deg);
+      position: absolute; inset: 50% auto auto 50%; width: 290px; translate: -50% -50%;
+      transform-style: preserve-3d; transition: transform .25s ease-out; will-change: transform;
     }
-    .phone img { width: 100%; height: auto; border-radius: 34px; }
+    .phone-frame {
+      padding: 11px; border-radius: 46px;
+      background: linear-gradient(145deg, #2A3352, #0E1428 60%);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 50px 100px -20px rgba(0,0,0,.8), 0 30px 60px -30px rgba(108,124,247,.6);
+    }
+    .phone-frame img { width: 100%; height: auto; border-radius: 36px; }
+    .glass {
+      position: absolute; padding: 14px 16px; border-radius: 18px; min-width: 190px;
+      background: rgba(20,28,58,.62); border: 1px solid var(--line-2); backdrop-filter: blur(14px);
+      box-shadow: 0 20px 50px -15px rgba(0,0,0,.6); font-size: .82rem;
+      animation: float 6s ease-in-out infinite;
+    }
+    .glass .k { color: var(--muted); font-size: .75rem; font-weight: 500; }
+    .glass .v { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 1.25rem; }
+    .glass .row { display: flex; align-items: center; gap: 10px; }
+    .glass .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+    .glass .ic svg { width: 18px; height: 18px; }
+    .g1 { top: 70px; left: -10px; }
+    .g2 { top: 250px; right: -20px; animation-delay: -2s; }
+    .g3 { bottom: 70px; left: 10px; animation-delay: -4s; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .bar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 8px; }
+    .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--indigo), var(--violet)); }
 
-    /* Sections */
-    section { padding: 88px 0; }
-    .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: .8rem; }
-    h2 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); line-height: 1.2; letter-spacing: -.02em; margin: 8px 0 12px; }
-    .section-lead { color: var(--muted); max-width: 40rem; margin: 0 0 48px; font-size: 1.05rem; }
+    /* ------------------------------------------------------------ Marquee */
+    .marquee { border-block: 1px solid var(--line); padding: 20px 0; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+    .track { display: flex; gap: 56px; width: max-content; animation: scroll 34s linear infinite; }
+    .track span { display: inline-flex; align-items: center; gap: 10px; color: var(--dim); font-weight: 600; white-space: nowrap; }
+    .track span::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); box-shadow: 0 0 10px var(--indigo); }
+    @keyframes scroll { to { transform: translateX(-50%); } }
+
+    /* ------------------------------------------------------------ Sections */
+    section { padding: 110px 0; position: relative; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; color: var(--indigo-2); font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase; font-size: .78rem;
+    }
+    .eyebrow::before { content: ""; width: 18px; height: 1px; background: currentColor; }
+    h2 { font-size: clamp(2rem, 4.2vw, 3.1rem); line-height: 1.1; margin: 14px 0 16px; font-weight: 800; }
+    .sub { color: var(--muted); max-width: 40rem; font-size: 1.08rem; margin: 0; }
+    .head { margin-bottom: 56px; }
     .center { text-align: center; }
-    .center .section-lead, .section-lead.center { margin-inline: auto; }
+    .center .sub { margin-inline: auto; }
 
-    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .feature {
-      background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px;
-      transition: transform .2s ease, box-shadow .2s ease;
-    }
-    .feature:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(36,59,107,.1); }
-    .icon {
-      width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
-      background: var(--accent-light); color: var(--primary); margin-bottom: 18px;
-    }
-    .icon svg { width: 24px; height: 24px; }
-    .feature h3 { margin: 0 0 6px; font-size: 1.1rem; }
-    .feature p { margin: 0; color: var(--muted); font-size: .95rem; }
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 0; }
+    .stat { padding: 26px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); text-align: center; }
+    .stat .n { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 2.6rem; line-height: 1; }
+    .stat .l { color: var(--muted); font-size: .92rem; margin-top: 8px; }
 
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; }
-    .step { position: relative; padding: 28px; border-radius: 20px; background: var(--accent-light); }
-    .step::before {
-      counter-increment: step; content: counter(step);
-      display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px;
-      background: var(--primary); color: #fff; font-weight: 800; margin-bottom: 16px;
+    /* Bento */
+    .bento { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: minmax(260px, auto); gap: 18px; }
+    .card {
+      position: relative; overflow: hidden; border-radius: var(--radius); padding: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+      border: 1px solid var(--line); isolation: isolate;
+      transition: border-color .3s, transform .3s;
     }
-    .step h3 { margin: 0 0 6px; font-size: 1.05rem; }
-    .step p { margin: 0; color: var(--muted); font-size: .95rem; }
+    .card::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; transition: opacity .3s;
+      background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), rgba(108,124,247,.18), transparent 60%);
+    }
+    .card:hover { border-color: var(--line-2); transform: translateY(-4px); }
+    .card:hover::before { opacity: 1; }
+    .card h3 { margin: 0 0 8px; font-size: 1.25rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .95rem; max-width: 30rem; }
+    .c-wide { grid-column: span 4; }
+    .c-tall { grid-column: span 2; grid-row: span 2; }
+    .c-half { grid-column: span 3; }
+    .c-third { grid-column: span 2; }
+    .demo { margin-top: 24px; }
 
-    .tech { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .chart { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding: 16px; border-radius: 16px; background: rgba(0,0,0,.25); border: 1px solid var(--line); }
+    .chart i {
+      flex: 1; border-radius: 8px 8px 4px 4px; height: var(--h);
+      background: linear-gradient(180deg, var(--indigo-2), rgba(108,124,247,.25));
+      transform-origin: bottom; transform: scaleY(0); transition: transform 1s cubic-bezier(.2,.8,.2,1);
+    }
+    .chart i:nth-child(6) { background: linear-gradient(180deg, var(--violet), rgba(167,139,250,.25)); box-shadow: 0 0 24px rgba(167,139,250,.5); }
+    .in .chart i, html:not(.js) .chart i { transform: scaleY(1); }
+    .chart-meta { display: flex; justify-content: space-between; margin-top: 12px; color: var(--dim); font-size: .8rem; }
+
+    .budgets { display: grid; gap: 16px; }
+    .budget .top { display: flex; justify-content: space-between; font-size: .88rem; margin-bottom: 8px; }
+    .budget .top b { font-weight: 600; }
+    .budget .top span { color: var(--muted); }
+    .budget .bar { height: 8px; margin: 0; }
+    .budget .bar i { width: 0; transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+    .in .budget .bar i, html:not(.js) .budget .bar i { width: var(--w); }
+    .alert {
+      margin-top: 18px; display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px; font-size: .85rem;
+      background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.3); color: #FDE68A;
+    }
+    .alert svg { width: 18px; height: 18px; flex: none; }
+
+    .goal { display: grid; place-items: center; margin-top: 18px; }
+    .goal svg { width: 150px; height: 150px; rotate: -90deg; }
+    .goal circle { fill: none; stroke-width: 12; }
+    .goal .track-c { stroke: rgba(255,255,255,.08); }
+    .goal .fill-c { stroke: url(#goalGrad); stroke-linecap: round; stroke-dasharray: 377; stroke-dashoffset: 377; transition: stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1); }
+    .in .goal .fill-c, html:not(.js) .goal .fill-c { stroke-dashoffset: 105; }
+    .goal .label { position: absolute; text-align: center; }
+    .goal .label b { display: block; font-family: "Plus Jakarta Sans", sans-serif; font-size: 1.8rem; }
+    .goal .label span { color: var(--muted); font-size: .8rem; }
+
+    .pin { display: flex; justify-content: center; gap: 14px; margin-top: 26px; }
+    .pin i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); }
+    .in .pin i { animation: pinfill 2.8s ease-in-out infinite; }
+    .pin i:nth-child(2) { animation-delay: .25s !important; }
+    .pin i:nth-child(3) { animation-delay: .5s !important; }
+    .pin i:nth-child(4) { animation-delay: .75s !important; }
+    @keyframes pinfill { 0%, 15% { background: transparent; border-color: var(--line-2); } 30%, 80% { background: var(--indigo-2); border-color: var(--indigo-2); box-shadow: 0 0 12px var(--indigo); } 100% { background: transparent; } }
+    .finger { display: grid; place-items: center; margin-top: 22px; }
+    .finger div {
+      width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; color: var(--indigo-2);
+      background: rgba(108,124,247,.12); border: 1px solid rgba(108,124,247,.35); position: relative;
+    }
+    .finger div::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 1px solid rgba(108,124,247,.4); animation: pulse 2.2s ease-out infinite; }
+    @keyframes pulse { from { transform: scale(.85); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
+    .finger svg { width: 36px; height: 36px; }
+
+    .otp { display: flex; gap: 8px; margin-top: 22px; }
+    .otp i {
+      flex: 1; aspect-ratio: .85; border-radius: 12px; display: grid; place-items: center; font-style: normal;
+      font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 1.3rem;
+      background: rgba(0,0,0,.25); border: 1px solid var(--line-2); opacity: .3; transition: opacity .4s, border-color .4s;
+    }
+    .in .otp i, html:not(.js) .otp i { opacity: 1; border-color: rgba(108,124,247,.5); }
+    .otp i:nth-child(2) { transition-delay: .1s; } .otp i:nth-child(3) { transition-delay: .2s; }
+    .otp i:nth-child(4) { transition-delay: .3s; } .otp i:nth-child(5) { transition-delay: .4s; } .otp i:nth-child(6) { transition-delay: .5s; }
+
+    .timeline-mini { margin-top: 22px; display: grid; gap: 10px; }
+    .tx { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.2); border: 1px solid var(--line); font-size: .85rem; }
+    .tx .dot { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; }
+    .tx .dot svg { width: 16px; height: 16px; }
+    .tx b { font-weight: 600; }
+    .tx .amt { margin-left: auto; font-weight: 700; }
+    .tx small { display: block; color: var(--dim); font-size: .75rem; }
+
+    /* Steps */
+    .steps { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .steps::before {
+      content: ""; position: absolute; top: 32px; left: 16%; right: 16%; height: 2px;
+      background: linear-gradient(90deg, var(--indigo), var(--violet), var(--sky)); opacity: .5;
+    }
+    .step { position: relative; text-align: center; padding: 0 12px; }
+    .step .num {
+      width: 64px; height: 64px; margin: 0 auto 22px; border-radius: 20px; display: grid; place-items: center;
+      font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 1.4rem;
+      background: var(--bg-2); border: 1px solid var(--line-2); position: relative;
+      box-shadow: 0 0 0 6px var(--bg), 0 0 40px -6px rgba(108,124,247,.7);
+    }
+    .step h3 { margin: 0 0 8px; font-size: 1.2rem; }
+    .step p { margin: 0; color: var(--muted); }
+
+    /* Tech */
+    .tech { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .tech span {
-      padding: 8px 16px; border-radius: 999px; background: var(--card); border: 1px solid var(--border);
-      font-weight: 600; font-size: .9rem; color: var(--primary);
+      padding: 10px 18px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line);
+      font-weight: 600; font-size: .92rem; color: #D6DBFF; transition: border-color .2s, transform .2s;
     }
+    .tech span:hover { border-color: var(--indigo); transform: translateY(-2px); }
 
-    .download {
-      color: #fff; border-radius: 28px; padding: 56px 32px; text-align: center;
-      background: radial-gradient(600px 300px at 50% 0%, rgba(108,124,247,.5), transparent 70%),
-                  linear-gradient(160deg, var(--primary), var(--primary-deep));
+    /* Download */
+    .dl {
+      position: relative; overflow: hidden; border-radius: 32px; padding: 64px;
+      display: grid; grid-template-columns: 1.3fr .7fr; gap: 48px; align-items: center;
+      background: radial-gradient(700px 400px at 0% 0%, rgba(108,124,247,.35), transparent 60%),
+                  radial-gradient(500px 400px at 100% 100%, rgba(167,139,250,.28), transparent 60%),
+                  linear-gradient(160deg, #111A3A, #0A1028);
+      border: 1px solid var(--line-2);
     }
-    .download h2 { color: #fff; }
-    .download p { color: rgba(255,255,255,.75); margin: 0 auto 28px; max-width: 34rem; }
-    .install-note {
-      margin: 28px auto 0; max-width: 34rem; text-align: left; font-size: .9rem; color: rgba(255,255,255,.75);
-      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 16px 20px;
+    .dl h2 { margin-top: 0; }
+    .dl .sub { margin-bottom: 30px; }
+    .install { margin-top: 28px; display: grid; gap: 10px; color: var(--muted); font-size: .92rem; counter-reset: s; }
+    .install div { display: flex; gap: 12px; align-items: center; }
+    .install div::before {
+      counter-increment: s; content: counter(s); width: 26px; height: 26px; border-radius: 8px; flex: none;
+      display: grid; place-items: center; font-weight: 700; font-size: .8rem; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text);
     }
-    .install-note ol { margin: 6px 0 0; padding-left: 20px; }
+    .qr-box { justify-self: center; text-align: center; }
+    .qr {
+      padding: 16px; border-radius: 22px; background: #fff; display: inline-block;
+      box-shadow: 0 0 0 1px var(--line-2), 0 30px 60px -20px rgba(108,124,247,.6);
+    }
+    .qr canvas, .qr img { display: block; width: 180px !important; height: 180px !important; }
+    .qr-box p { color: var(--muted); font-size: .88rem; margin: 14px 0 0; }
 
-    footer { padding: 32px 0 48px; color: var(--muted); font-size: .9rem; }
-    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+    /* FAQ */
+    .faq { max-width: 780px; margin-inline: auto; display: grid; gap: 12px; }
+    details { border-radius: 18px; background: var(--surface); border: 1px solid var(--line); transition: border-color .2s; }
+    details[open] { border-color: var(--line-2); }
+    summary { cursor: pointer; list-style: none; padding: 20px 24px; font-weight: 600; display: flex; justify-content: space-between; gap: 16px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--indigo-2); font-size: 1.3rem; line-height: 1; transition: rotate .2s; }
+    details[open] summary::after { rotate: 45deg; }
+    details p { margin: 0; padding: 0 24px 22px; color: var(--muted); }
 
-    @media (max-width: 860px) {
-      .hero { padding: 112px 0 72px; }
+    footer { border-top: 1px solid var(--line); padding: 36px 0 50px; color: var(--dim); font-size: .9rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* Reveal */
+    .js .reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1); }
+    .js .reveal.in { opacity: 1; transform: none; }
+    .reveal.d1 { transition-delay: .08s; } .reveal.d2 { transition-delay: .16s; } .reveal.d3 { transition-delay: .24s; }
+
+    /* ------------------------------------------------------------ Responsive */
+    @media (max-width: 980px) {
+      .hero { padding-top: 120px; }
       .hero-grid { grid-template-columns: 1fr; text-align: center; }
       .lead { margin-inline: auto; }
-      .cta-row { justify-content: center; }
-      .phone { transform: none; }
-      .features, .steps { grid-template-columns: 1fr; }
-      .nav-links a:not(.nav-cta) { display: none; }
+      .cta-row, .trust { justify-content: center; }
+      .stage { height: 560px; margin-top: 10px; }
+      .ring.r2 { width: 520px; height: 520px; }
+      .bento { grid-template-columns: 1fr 1fr; }
+      .c-wide, .c-half { grid-column: span 2; }
+      .c-tall { grid-column: span 2; grid-row: auto; }
+      .c-third { grid-column: span 1; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .dl { grid-template-columns: 1fr; padding: 40px 28px; text-align: center; }
+      .dl .sub { margin-inline: auto; }
+      .install { text-align: left; max-width: 26rem; margin-inline: auto; }
+    }
+    @media (max-width: 640px) {
+      .nav-links a:not(.btn) { display: none; }
+      .stage { height: 520px; }
+      .phone { width: 240px; }
+      .glass { min-width: 0; padding: 10px 12px; }
+      .glass .v { font-size: 1.05rem; }
+      .g1 { left: 0; top: 30px; } .g2 { right: 0; } .g3 { left: 0; bottom: 30px; }
+      .ring.r1 { width: 400px; height: 400px; } .ring.r2 { display: none; }
+      .bento { grid-template-columns: 1fr; }
+      .c-wide, .c-half, .c-tall, .c-third { grid-column: auto; }
+      .steps { grid-template-columns: 1fr; gap: 40px; }
+      .steps::before { display: none; }
+      section { padding: 80px 0; }
+      .cta-row .btn { width: 100%; justify-content: center; }
     }
     @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; scroll-behavior: auto !important; }
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      .reveal { opacity: 1; transform: none; }
+      .chart i { transform: none; } .budget .bar i { width: var(--w); } .goal .fill-c { stroke-dashoffset: 105; }
     }
   </style>
 </head>
 <body>
-  <header class="nav">
+  <div class="aurora" aria-hidden="true"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+  <div class="grid-bg" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
     <div class="wrap">
-      <a class="brand" href="#"><img src="assets/icon.png" alt="">PocketPlan</a>
+      <a class="brand" href="#top"><img src="assets/icon.png" alt="">PocketPlan</a>
       <nav class="nav-links" aria-label="Main">
         <a href="#features">Features</a>
         <a href="#how">How it works</a>
-        <a class="nav-cta" href="#download">Download</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn btn-glow btn-sm" href="#download">Download</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main id="top">
+    <!-- Hero -->
     <section class="hero">
       <div class="wrap hero-grid">
         <div>
-          <span class="pill"><span class="dot"></span> Free for Android</span>
-          <h1>Make every <span>allowance</span> last the whole month.</h1>
-          <p class="lead">PocketPlan helps students track spending, set budgets and save for goals — with sign-in by email code and a PIN or fingerprint lock.</p>
-          <div class="cta-row">
-            <a class="btn btn-primary" href="#download">
+          <span class="badge reveal"><b>NEW</b> Free for Android · v1.0</span>
+          <h1 class="reveal d1">Make every allowance <span class="grad">last the whole month.</span></h1>
+          <p class="lead reveal d2">PocketPlan is the budgeting app built for students — track spending, set smart budgets and hit your savings goals, protected by a PIN or your fingerprint.</p>
+          <div class="cta-row reveal d3">
+            <a class="btn btn-glow" href="#download">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
               Download for Android
             </a>
-            <a class="btn btn-ghost" href="#features">See features</a>
+            <a class="btn btn-line" href="#features">Explore features</a>
           </div>
-          <p class="meta">For Android phones · No bank login · Your data stays private</p>
+          <div class="trust reveal d3">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>100% free</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>No bank login</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>No password to remember</span>
+          </div>
         </div>
-        <div class="phone">
-          <img src="assets/screen-signup.png" alt="PocketPlan's create-account screen on an Android phone" width="1080" height="2400">
+
+        <div class="stage reveal d2" id="stage">
+          <div class="halo" aria-hidden="true"></div>
+          <div class="ring r1" aria-hidden="true"></div>
+          <div class="ring r2" aria-hidden="true"></div>
+          <div class="phone" id="phone">
+            <div class="phone-frame">
+              <img src="assets/screen-signup.png" alt="PocketPlan's create-account screen on an Android phone" width="1080" height="2400">
+            </div>
+          </div>
+          <div class="glass g1" aria-hidden="true">
+            <div class="k">Left to spend this week</div>
+            <div class="v">₱1,240.00</div>
+            <div class="bar"><i style="width:62%"></i></div>
+          </div>
+          <div class="glass g2" aria-hidden="true">
+            <div class="row">
+              <div class="ic" style="background:rgba(74,222,128,.15);color:var(--mint)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+              <div><div class="k">New laptop goal</div><div class="v">72% saved</div></div>
+            </div>
+          </div>
+          <div class="glass g3" aria-hidden="true">
+            <div class="row">
+              <div class="ic" style="background:rgba(251,191,36,.15);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+              <div><div class="k">Heads up</div><div style="font-weight:600">80% of Food budget used</div></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- Marquee -->
+    <div class="marquee" aria-hidden="true">
+      <div class="track">
+        <span>Track expenses</span><span>Weekly budgets</span><span>Savings goals</span><span>Recurring allowance</span><span>Spending alerts</span><span>PIN &amp; fingerprint lock</span><span>Email code sign-in</span><span>CSV export</span>
+        <span>Track expenses</span><span>Weekly budgets</span><span>Savings goals</span><span>Recurring allowance</span><span>Spending alerts</span><span>PIN &amp; fingerprint lock</span><span>Email code sign-in</span><span>CSV export</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <section style="padding-bottom: 40px;">
+      <div class="wrap stats">
+        <div class="stat reveal"><div class="n"><span class="grad" data-count="3">0</span></div><div class="l">steps to get started</div></div>
+        <div class="stat reveal d1"><div class="n"><span class="grad" data-count="6">0</span></div><div class="l">digit code — no password</div></div>
+        <div class="stat reveal d2"><div class="n"><span class="grad" data-count="0">0</span></div><div class="l">bank accounts to link</div></div>
+        <div class="stat reveal d3"><div class="n"><span class="grad">₱0</span></div><div class="l">it's completely free</div></div>
+      </div>
+    </section>
+
+    <!-- Features -->
     <section id="features">
       <div class="wrap">
-        <p class="eyebrow center">Features</p>
-        <h2 class="center">Everything you need to stay on budget</h2>
-        <p class="section-lead center">Built for students living on an allowance — simple enough to use every day.</p>
-        <div class="features">
-          <article class="feature">
-            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div>
+        <div class="head center">
+          <span class="eyebrow reveal">Features</span>
+          <h2 class="reveal d1">Everything your allowance needs.<br><span class="grad">Nothing it doesn't.</span></h2>
+          <p class="sub reveal d2">Designed around how students actually spend — quick to log, clear at a glance, and private by default.</p>
+        </div>
+
+        <div class="bento">
+          <article class="card c-wide reveal">
             <h3>Spending dashboard</h3>
-            <p>See today's spending, your balance and where your money goes, at a glance.</p>
+            <p>See where every peso goes. Daily totals, your balance and top categories — updated the moment you log an expense.</p>
+            <div class="demo">
+              <div class="chart" aria-hidden="true">
+                <i style="--h:42%"></i><i style="--h:65%"></i><i style="--h:38%"></i><i style="--h:80%"></i><i style="--h:55%"></i><i style="--h:92%"></i><i style="--h:48%"></i>
+              </div>
+              <div class="chart-meta" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+            </div>
           </article>
-          <article class="feature">
-            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18"/></svg></div>
+
+          <article class="card c-tall reveal d1">
             <h3>Budgets that warn you</h3>
-            <p>Set daily, weekly or monthly limits per category and get an alert before you overspend.</p>
+            <p>Set daily, weekly or monthly limits per category. PocketPlan alerts you before you overspend.</p>
+            <div class="demo budgets" aria-hidden="true">
+              <div class="budget"><div class="top"><b>Food</b><span>₱1,600 / ₱2,000</span></div><div class="bar"><i style="--w:80%; background:linear-gradient(90deg,#F59E0B,#FBBF24)"></i></div></div>
+              <div class="budget"><div class="top"><b>Transport</b><span>₱450 / ₱800</span></div><div class="bar"><i style="--w:56%"></i></div></div>
+              <div class="budget"><div class="top"><b>School</b><span>₱300 / ₱1,000</span></div><div class="bar"><i style="--w:30%; background:linear-gradient(90deg,#22C55E,#4ADE80)"></i></div></div>
+              <div class="budget"><div class="top"><b>Fun</b><span>₱520 / ₱600</span></div><div class="bar"><i style="--w:87%; background:linear-gradient(90deg,#F43F5E,#FB7185)"></i></div></div>
+            </div>
+            <div class="alert" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              You've used 80% of your Food budget.
+            </div>
           </article>
-          <article class="feature">
-            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+
+          <article class="card c-third reveal">
             <h3>Savings goals</h3>
-            <p>Save toward a new phone, a trip or an emergency fund, and watch your progress grow.</p>
+            <p>Save for a laptop, a trip or an emergency fund.</p>
+            <div class="goal" aria-hidden="true">
+              <svg viewBox="0 0 140 140"><defs><linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6C7CF7"/><stop offset="1" stop-color="#67E8F9"/></linearGradient></defs><circle class="track-c" cx="70" cy="70" r="60"/><circle class="fill-c" cx="70" cy="70" r="60"/></svg>
+              <div class="label"><b>72%</b><span>of ₱10,000</span></div>
+            </div>
           </article>
-          <article class="feature">
-            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+
+          <article class="card c-third reveal d1">
             <h3>Recurring allowance</h3>
-            <p>Add your weekly or monthly allowance once and PocketPlan records it for you.</p>
+            <p>Add it once — it's recorded for you every week or month.</p>
+            <div class="timeline-mini" aria-hidden="true">
+              <div class="tx"><div class="dot" style="background:rgba(74,222,128,.15);color:var(--mint)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></div><div><b>Weekly allowance</b><small>Every Monday</small></div><span class="amt" style="color:var(--mint)">+₱1,500</span></div>
+              <div class="tx"><div class="dot" style="background:rgba(251,113,133,.15);color:var(--rose)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></div><div><b>Lunch</b><small>Today, 12:30 PM</small></div><span class="amt">−₱120</span></div>
+            </div>
           </article>
-          <article class="feature">
-            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
-            <h3>PIN &amp; fingerprint lock</h3>
-            <p>Keep your finances private with a 4-digit PIN or your fingerprint.</p>
+
+          <article class="card c-half reveal">
+            <h3>Locked with a PIN or your fingerprint</h3>
+            <p>Your finances stay private, even if someone borrows your phone.</p>
+            <div class="pin" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="finger" aria-hidden="true">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg></div>
+            </div>
           </article>
-          <article class="feature">
-            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
-            <h3>No password needed</h3>
-            <p>Sign in with a 6-digit code sent to your email. Nothing to remember.</p>
+
+          <article class="card c-half reveal d1">
+            <h3>Sign in with a code, not a password</h3>
+            <p>Enter your email and type the 6-digit code we send you. Nothing to remember, nothing to leak.</p>
+            <div class="otp" aria-hidden="true"><i>4</i><i>8</i><i>2</i><i>9</i><i>1</i><i>6</i></div>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="how" style="background: var(--card); border-block: 1px solid var(--border);">
+    <!-- How it works -->
+    <section id="how">
       <div class="wrap">
-        <p class="eyebrow center">How it works</p>
-        <h2 class="center">Up and running in a minute</h2>
-        <p class="section-lead center">No bank account to link and nothing to set up.</p>
+        <div class="head center">
+          <span class="eyebrow reveal">How it works</span>
+          <h2 class="reveal d1">Set up in under a minute</h2>
+          <p class="sub reveal d2">No bank account to link and nothing complicated to configure.</p>
+        </div>
         <div class="steps">
-          <div class="step"><h3>Sign up with your email</h3><p>Enter your email, type the code we send you, and add your name.</p></div>
-          <div class="step"><h3>Add your allowance</h3><p>Record your income and set a budget for the week or month.</p></div>
-          <div class="step"><h3>Log as you spend</h3><p>Add expenses in seconds and let PocketPlan keep you on track.</p></div>
+          <div class="step reveal"><div class="num">1</div><h3>Sign up with your email</h3><p>Enter your email, type the code we send you, and add your name.</p></div>
+          <div class="step reveal d1"><div class="num">2</div><h3>Add your allowance</h3><p>Record your income and set a budget for the week or month.</p></div>
+          <div class="step reveal d2"><div class="num">3</div><h3>Log as you spend</h3><p>Add expenses in seconds and let PocketPlan keep you on track.</p></div>
         </div>
       </div>
     </section>
 
-    <section>
+    <!-- Tech -->
+    <section style="padding-top: 40px;">
       <div class="wrap center">
-        <p class="eyebrow">Built with</p>
-        <h2>The tech behind it</h2>
-        <p class="section-lead">A full-stack project: a mobile app and a secure REST API.</p>
-        <div class="tech">
-          <span>React Native</span><span>Expo</span><span>TypeScript</span><span>Laravel 12</span><span>PHP 8</span><span>MySQL</span><span>Sanctum auth</span><span>REST API</span>
+        <span class="eyebrow reveal">Under the hood</span>
+        <h2 class="reveal d1">Built as a full-stack product</h2>
+        <p class="sub reveal d2" style="margin-bottom: 36px;">A native mobile app backed by a secure REST API and a cloud database.</p>
+        <div class="tech reveal d3">
+          <span>React Native</span><span>Expo</span><span>TypeScript</span><span>Laravel 12</span><span>PHP 8.4</span><span>MySQL</span><span>Sanctum auth</span><span>REST API</span><span>Docker</span><span>Render</span>
         </div>
       </div>
     </section>
 
+    <!-- Download -->
     <section id="download">
       <div class="wrap">
-        <div class="download">
-          <h2>Get PocketPlan for Android</h2>
-          <p>Free download. Install it directly — no Play Store account needed.</p>
-          <a class="btn btn-primary" href="https://github.com/KertCainAbajo/PocketPlan/releases/latest/download/PocketPlan.apk" download>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-            Download APK
-          </a>
-          <div class="install-note">
-            <strong>Installing on your phone</strong>
-            <ol>
-              <li>Tap <em>Download APK</em> and open the file when it finishes.</li>
-              <li>If asked, allow your browser to <em>install unknown apps</em>.</li>
-              <li>Tap <em>Install</em>, then open PocketPlan.</li>
-            </ol>
+        <div class="dl reveal">
+          <div>
+            <span class="eyebrow">Download</span>
+            <h2>Get PocketPlan <span class="grad">for Android</span></h2>
+            <p class="sub">Free, with no Play Store account needed. Install it directly on your phone.</p>
+            <a class="btn btn-glow" id="apk" href="https://github.com/KertCainAbajo/PocketPlan/releases/latest/download/PocketPlan.apk" download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+              Download APK
+            </a>
+            <div class="install">
+              <div><span>Tap <b style="color:var(--text)">Download APK</b> and open the file.</span></div>
+              <div><span>If asked, allow your browser to install unknown apps.</span></div>
+              <div><span>Tap Install, then open PocketPlan.</span></div>
+            </div>
           </div>
+          <div class="qr-box">
+            <div class="qr" id="qr" role="img" aria-label="QR code that downloads the PocketPlan app"></div>
+            <p>On a computer? Scan with your phone.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" style="padding-top: 30px;">
+      <div class="wrap">
+        <div class="head center">
+          <span class="eyebrow reveal">FAQ</span>
+          <h2 class="reveal d1">Questions, answered</h2>
+        </div>
+        <div class="faq">
+          <details class="reveal"><summary>Is PocketPlan really free?</summary><p>Yes. There are no subscriptions, ads or in-app purchases.</p></details>
+          <details class="reveal d1"><summary>Do I need to connect my bank?</summary><p>No. You log your own income and expenses, so there's nothing to link and no bank details to share.</p></details>
+          <details class="reveal d2"><summary>Why isn't it on the Play Store?</summary><p>It's distributed directly as an APK. Android may ask you to allow installs from your browser the first time — that's normal for apps installed outside the Play Store.</p></details>
+          <details class="reveal d3"><summary>How do I sign in without a password?</summary><p>Enter your email and PocketPlan sends you a 6-digit code. Type it in and you're signed in. You can also add a PIN or fingerprint lock.</p></details>
         </div>
       </div>
     </section>
@@ -279,10 +621,71 @@
 
   <footer>
     <div class="wrap">
-      <span>© <span id="year"></span> PocketPlan · Made by Kert Cain Abajo</span>
-      <a href="https://github.com/KertCainAbajo/PocketPlan">View source on GitHub</a>
+      <a class="brand" href="#top"><img src="assets/icon.png" alt="" style="width:28px;height:28px">PocketPlan</a>
+      <span>© <span id="year"></span> · Designed &amp; built by Kert Cain Abajo</span>
+      <a href="https://github.com/KertCainAbajo/PocketPlan">View source on GitHub →</a>
     </div>
   </footer>
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Glassy nav once you scroll.
+    const nav = document.getElementById('nav');
+    const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 20);
+    onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Reveal on scroll + count-up numbers.
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const countUp = (el) => {
+      const end = Number(el.dataset.count);
+      if (reduce || !end) { el.textContent = end; return; }
+      const t0 = performance.now();
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / 1200);
+        el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        e.target.querySelectorAll('[data-count]').forEach(countUp);
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.18 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+    // Spotlight that follows the cursor on feature cards.
+    document.querySelectorAll('.card').forEach((card) => {
+      card.addEventListener('pointermove', (e) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+        card.style.setProperty('--my', `${e.clientY - r.top}px`);
+      });
+    });
+
+    // 3D tilt of the phone with the mouse.
+    const stage = document.getElementById('stage');
+    const phone = document.getElementById('phone');
+    if (!reduce && matchMedia('(pointer: fine)').matches) {
+      stage.addEventListener('pointermove', (e) => {
+        const r = stage.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        phone.style.transform = `rotateY(${x * 18}deg) rotateX(${-y * 14}deg)`;
+      });
+      stage.addEventListener('pointerleave', () => { phone.style.transform = ''; });
+    }
+
+    // QR code for the APK download link.
+    const apk = document.getElementById('apk').href;
+    if (window.QRCode) {
+      new QRCode(document.getElementById('qr'), { text: apk, width: 360, height: 360, colorDark: '#0B1226', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    }
+  </script>
 </body>
 </html>
