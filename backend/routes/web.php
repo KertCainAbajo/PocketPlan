@@ -2,10 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 
-// The admin dashboard (Blade) will be mounted under /admin in Phase 3.
-// Until then, the root only identifies the service.
-Route::get('/', fn () => response()->json([
-    'name' => config('app.name'),
-    'api' => url('/api/v1'),
-    'health' => url('/up'),
-]));
+// Keep the API service useful when opened in a browser, while retaining a
+// local service summary when no public landing page URL is configured.
+Route::get('/', function () {
+    if (config('app.landing_url')) {
+        return redirect()->away(config('app.landing_url'));
+    }
+
+    return response()->json([
+        'name' => config('app.name'),
+        'api' => url('/api/v1'),
+        'health' => url('/up'),
+    ]);
+});

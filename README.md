@@ -9,6 +9,15 @@ The project has two parts:
 | [`backend/`](backend) | REST API and admin dashboard | Laravel 12, PHP 8.3, MySQL 8, Sanctum |
 | [`mobile/`](mobile) | Android and iOS app | Expo SDK 57, React Native, TypeScript, NativeWind |
 
+## Render deployment
+
+The Render Blueprint in [`render.yaml`](render.yaml) creates two services:
+
+- `pocketplan.onrender.com` serves the public landing page.
+- `pocketplan-api.onrender.com` serves the Laravel API. Its `/up` path is a health check; opening the API root redirects to the landing page.
+
+After deploying the Blueprint, open `https://pocketplan.onrender.com` to view the landing page. Set the `LANDING_URL` API environment variable to your actual landing service URL if Render assigns a different hostname.
+
 ## Features
 
 - **Daily safe-to-spend limit**, recalculated every day from your budget, what you've spent and the days left.
