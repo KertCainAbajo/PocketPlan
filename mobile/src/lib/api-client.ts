@@ -6,7 +6,8 @@ import { config } from './config';
 
 export const api = createAxios({
   baseURL: config.apiUrl,
-  timeout: 15000,
+  // Free hosting sleeps when idle and can take ~a minute to wake on the first request.
+  timeout: 75000,
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 });
 
@@ -42,7 +43,7 @@ export function getErrorMessage(error: unknown): string {
   if (isAxiosError<ApiErrorBody>(error)) {
     if (!error.response) {
       return error.code === 'ECONNABORTED'
-        ? 'The server took too long to respond. Please try again.'
+        ? 'The server is waking up. Please try again in a moment.'
         : 'Cannot reach PocketPlan. Check your internet connection and try again.';
     }
     if (error.response.status === 429) return 'Too many attempts. Please wait a minute and try again.';

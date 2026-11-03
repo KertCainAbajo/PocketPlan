@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Hosting platforms (Render, Railway, ...) terminate HTTPS at a proxy in front of the app.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'active' => EnsureAccountActive::class,
             'student' => EnsureStudent::class,

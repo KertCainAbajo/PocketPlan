@@ -1,0 +1,67 @@
+# Render Blueprint: free hosting for the PocketPlan API.
+# Render → New → Blueprint → pick this repo. Fill in the values marked "sync: false" when asked.
+services:
+  - type: web
+    name: pocketplan-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: PocketPlan
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY # run `php artisan key:generate --show` locally and paste the output
+        sync: false
+      - key: APP_URL # e.g. https://pocketplan-api.onrender.com
+        sync: false
+      - key: APP_TIMEZONE
+        value: Asia/Manila
+
+      # Free MySQL from Aiven (aiven.io): copy these from the service's "Connection information".
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        value: defaultdb
+      - key: DB_USERNAME
+        value: avnadmin
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL_CA_PEM # paste the whole "CA certificate" text from Aiven
+        sync: false
+
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+
+      # Sign-in codes by email via Brevo's free HTTPS API (Render free blocks SMTP ports).
+      - key: MAIL_MAILER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_ADDRESS # the sender address you verified in Brevo
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: PocketPlan
+
+      # Admin web panel account, created on first start.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
