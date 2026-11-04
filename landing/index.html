@@ -23,7 +23,9 @@
   --sans:'Archivo',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace; --hand:'Nanum Pen Script','Segoe Print',cursive;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-stopped{overflow:hidden}
 body{margin:0;background:var(--pad);color:var(--ink);font-family:var(--sans);font-size:19px;overflow-x:hidden}
 img{display:block;max-width:100%;height:auto}
 a{color:inherit}
@@ -233,7 +235,6 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
   .scan{gap:12px}
 }
 @media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
   .js tbody tr{clip-path:none}.js .stamp{opacity:.9}
 }
@@ -400,6 +401,7 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"></script>
 <script>
 (function () {
   // Same rule as the app: what's left, divided by the days left.
@@ -440,6 +442,12 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
   document.getElementById('less').addEventListener('click', function () { if (days > 1) { days--; update(); } });
   document.getElementById('more').addEventListener('click', function () { if (days < 31) { days++; update(); } });
   setTimeout(function () { ring.classList.add('draw'); }, 1500);
+
+  // Smooth scrolling, including the header links. Left off for people who ask for less motion.
+  if (window.Lenis && !calm) {
+    var lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 1, anchors: true });
+    (function raf(time) { lenis.raf(time); requestAnimationFrame(raf); })(performance.now());
+  }
 
   // Folder tabs
   var tabs = [].slice.call(document.querySelectorAll('[role=tab]'));
