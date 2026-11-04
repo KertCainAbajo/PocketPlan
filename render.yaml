@@ -52,8 +52,10 @@ services:
 
       - key: SESSION_DRIVER
         value: database
-      - key: CACHE_STORE
-        value: database
+      - key: CACHE_STORE # rate limits and short-lived sign-in data; keeps them off the remote database
+        value: file
+      - key: DB_PERSISTENT
+        value: "true"
       - key: QUEUE_CONNECTION
         value: sync
       - key: LOG_CHANNEL

@@ -23,4 +23,7 @@ php artisan db:seed --force \
 # Recurring allowances and cleanup, while the service is awake.
 php artisan schedule:work > /dev/null 2>&1 &
 
-exec php artisan serve --host=0.0.0.0 --port="${PORT:-8000}"
+# Run PHP's server directly, not `artisan serve`: that command parses every output line and exits
+# on one it can't read, which takes the whole service down. PHP_CLI_SERVER_WORKERS sets the workers.
+cd public
+exec php -S "0.0.0.0:${PORT:-8000}" ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php
