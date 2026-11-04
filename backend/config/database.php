@@ -63,6 +63,8 @@ return [
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
                 // Reuse connections between requests: a new TLS connection to a hosted database takes seconds.
                 PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                // One network round trip per query instead of three, which matters with a remote database.
+                PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', false),
             ]) : [],
         ],
 
