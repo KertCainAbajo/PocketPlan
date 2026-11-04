@@ -175,16 +175,39 @@ ol.steps{margin:0;padding:0;list-style:none;font-family:var(--mono);font-size:14
 ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;margin-top:9px}
 ol.steps li::before{content:counter(s) ".";font-weight:700}
 
-/* Questions */
-.qa{background:var(--paper);padding:96px 0}
-.qa-grid{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1fr);gap:56px}
-details{border-top:2px solid var(--ink)}
-details:last-child{border-bottom:2px solid var(--ink)}
-summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px;padding:19px 2px;font-size:21px;font-weight:700;font-stretch:92%}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"+";font:700 23px var(--mono);transition:transform .2s}
-details[open] summary::after{transform:rotate(45deg);color:var(--pen)}
-details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
+/* Questions: a pop quiz on a test paper */
+.qa{background:var(--navy);color:#fff;padding:112px 0 128px;overflow:clip}
+.qa-grid{display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1fr);gap:72px;align-items:start}
+.qa-intro{position:sticky;top:48px}
+.qa-intro .hand{color:var(--pad);font-size:34px;transform:rotate(-2deg);display:block;margin-bottom:10px}
+.qa-intro h2.big{font-size:104px;line-height:.95}
+.qa-intro p.say{font-size:20px;line-height:1.5;color:#C9D3E8;margin:22px 0 32px;max-width:23em}
+.qa-intro .btn{box-shadow:6px 6px 0 var(--pad);background:var(--paper);color:var(--ink)}
+.qa-intro .btn:hover{box-shadow:8px 8px 0 var(--pad)}
+.qa-intro .btn:active{box-shadow:2px 2px 0 var(--pad)}
+.test{position:relative;background:var(--paper);color:var(--ink);padding:34px 40px 40px 84px;transform:rotate(.7deg);box-shadow:12px 14px 0 rgba(0,0,0,.25)}
+.test::before{content:"";position:absolute;top:0;bottom:0;left:62px;width:2px;background:var(--margin);opacity:.7}
+.test::after{content:"";position:absolute;left:20px;top:0;bottom:0;width:22px;background:radial-gradient(circle at 11px 11px,var(--navy) 10.5px,transparent 11px) 0 12% /22px 22px no-repeat,radial-gradient(circle at 11px 11px,var(--navy) 10.5px,transparent 11px) 0 50% /22px 22px no-repeat,radial-gradient(circle at 11px 11px,var(--navy) 10.5px,transparent 11px) 0 88% /22px 22px no-repeat}
+.test-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:3px double var(--ink);padding-bottom:16px;font:500 14px/1.9 var(--mono)}
+.test-head u{font-family:var(--hand);font-size:27px;color:#1D3FA8;text-decoration-thickness:1px;text-underline-offset:4px;margin-left:6px}
+.score{position:relative;flex:none;width:112px;height:76px;display:flex;align-items:center;justify-content:center;font-family:var(--hand);font-size:50px;color:var(--pen);transform:rotate(-5deg)}
+.score svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.score path{fill:none;stroke:var(--pen);stroke-width:2.6;stroke-linecap:round}
+.quiz-q{border-bottom:1px solid var(--rule)}
+.quiz-q summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:30px minmax(0,1fr) 30px;gap:6px;align-items:center;padding:17px 0;font-size:21px;font-weight:700;font-stretch:92%;transition:transform .18s}
+.quiz-q summary:hover{transform:translateX(5px)}
+.quiz-q summary::-webkit-details-marker{display:none}
+.quiz-q .n{font:700 15px var(--mono);color:var(--ink-soft)}
+.tick{width:30px;height:30px;overflow:visible}
+.tick rect{fill:none;stroke:var(--ink);stroke-width:2}
+.tick path{fill:none;stroke:var(--pen);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .3s ease-out}
+.quiz-q[open] .tick path,.quiz-q.read .tick path{stroke-dashoffset:0}
+.quiz-q p{font-family:var(--hand);font-size:29px;line-height:1.14;color:#1D3FA8;padding:0 34px 20px 36px}
+.js .quiz-q[open] p{animation:write .55s ease-out both}
+@keyframes write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 -2% -10% 0)}}
+.perfect{position:absolute;right:-20px;bottom:-26px;border:5px solid var(--pen);border-radius:6px;color:var(--pen);background:var(--paper);padding:7px 14px;font:900 31px var(--sans);font-stretch:85%;line-height:1;transform:rotate(-9deg);filter:url(#rough);opacity:0;pointer-events:none}
+.test.done .perfect{animation:perfect .38s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes perfect{from{opacity:0;transform:rotate(-9deg) scale(2.1)}to{opacity:.92;transform:rotate(-9deg) scale(1)}}
 
 @media (max-width:1180px){
   .try{display:none}
@@ -196,7 +219,9 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
   .hero .wrap{grid-template-columns:minmax(0,1fr);padding-left:calc(var(--gutter) + 18px);padding-right:24px;gap:40px}
   .slip-col{max-width:420px;padding-bottom:56px}
   .js .slip{animation:none}
-  .head,.qa-grid{grid-template-columns:minmax(0,1fr);gap:18px}
+  .head{grid-template-columns:minmax(0,1fr);gap:18px}
+  .qa-grid{grid-template-columns:minmax(0,1fr);gap:44px}
+  .qa-intro{position:static}
   .coupon{grid-template-columns:minmax(0,1fr)}
   .c-side{border-left:0;border-top:3px dashed #AEB4C2}
   .c-side::before{left:-15px;top:-16px}.c-side::after{left:auto;right:-15px;top:-16px;bottom:auto}
@@ -217,6 +242,18 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
   .cta .hand{font-size:27px;max-width:none}
   .slip{padding:24px 18px 28px}
   .ledger,.qa{padding:64px 0}
+  .qa{padding:64px 0 80px}
+  .qa-intro h2.big{font-size:72px}
+  .test{padding:22px 16px 30px 44px;transform:none;box-shadow:7px 8px 0 rgba(0,0,0,.25)}
+  .test::before{left:32px}
+  .test::after{left:5px}
+  .test-head{font-size:12.5px}
+  .test-head u{font-size:23px}
+  .score{width:84px;height:60px;font-size:38px}
+  .quiz-q summary{grid-template-columns:24px minmax(0,1fr) 26px;font-size:18px}
+  .tick{width:26px;height:26px}
+  .quiz-q p{font-size:26px;padding:0 4px 18px 30px}
+  .perfect{right:-6px;bottom:-22px;font-size:24px}
   .drawer{padding-top:64px}
   h2.big{font-size:44px}
   table{font-size:14px}
@@ -237,6 +274,9 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   .js tbody tr{clip-path:none}.js .stamp{opacity:.9}
+  .test.done .perfect{opacity:.92}
+  .tick path{stroke-dashoffset:1}
+  .quiz-q[open] .tick path,.quiz-q.read .tick path{stroke-dashoffset:0}
 }
 </style>
 </head>
@@ -388,13 +428,23 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
 
 <section class="qa" id="questions">
   <div class="wrap qa-grid">
-    <h2 class="big">Fair questions.</h2>
-    <div>
-      <details open><summary>Is it really free?</summary><p>Yes. There are no subscriptions, ads or in-app purchases.</p></details>
-      <details><summary>Do I need to connect my bank or GCash?</summary><p>No. You log your own income and expenses, so there's nothing to link and no account details to share.</p></details>
-      <details><summary>Why isn't it on the Play Store?</summary><p>It's shared directly as an APK. Android may ask you to allow installs from your browser the first time, which is normal for apps installed outside the Play Store.</p></details>
-      <details><summary>Why was the first load slow?</summary><p>PocketPlan runs on free hosting, and the server sleeps when nobody is using it. The first request after a quiet spell can take up to a minute. After that it's awake.</p></details>
-      <details><summary>How do I sign in without a password?</summary><p>Enter your email and PocketPlan sends you a 6-digit code. Type it in and you're in. You can also add a PIN or fingerprint lock.</p></details>
+    <div class="qa-intro">
+      <span class="hand">before you install</span>
+      <h2 class="big">Pop quiz.</h2>
+      <p class="say">The five things everyone asks first. Open them all for a perfect score.</p>
+      <a class="btn" href="#download"><b>Get PocketPlan</b><span>Free · APK · 111 MB</span></a>
+    </div>
+    <div class="test" id="test">
+      <div class="test-head">
+        <div>Name:<u>Future saver</u><br>Subject:<u>Allowance 101</u></div>
+        <div class="score" aria-live="polite" aria-label="Questions read"><span id="score">1</span>/5<svg viewBox="0 0 112 76" preserveAspectRatio="none" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M26 12C58 0 98 6 106 30c6 24-30 40-62 39C14 68-2 50 6 30 11 17 34 8 62 7"/></svg></div>
+      </div>
+        <details class="quiz-q" open><summary><span class="n">1.</span><span>Is it really free?</span><svg class="tick" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="6" width="20" height="20"/><path pathLength="1" d="M7 15l6 8L28 3"/></svg></summary><p>Yes. There are no subscriptions, ads or in-app purchases.</p></details>
+        <details class="quiz-q"><summary><span class="n">2.</span><span>Do I need to connect my bank or GCash?</span><svg class="tick" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="6" width="20" height="20"/><path pathLength="1" d="M7 15l6 8L28 3"/></svg></summary><p>No. You log your own income and expenses, so there's nothing to link and no account details to share.</p></details>
+        <details class="quiz-q"><summary><span class="n">3.</span><span>Why isn't it on the Play Store?</span><svg class="tick" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="6" width="20" height="20"/><path pathLength="1" d="M7 15l6 8L28 3"/></svg></summary><p>It's shared directly as an APK. Android may ask you to allow installs from your browser the first time, which is normal for apps installed outside the Play Store.</p></details>
+        <details class="quiz-q"><summary><span class="n">4.</span><span>Why was the first load slow?</span><svg class="tick" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="6" width="20" height="20"/><path pathLength="1" d="M7 15l6 8L28 3"/></svg></summary><p>PocketPlan runs on free hosting, and the server sleeps when nobody is using it. The first request after a quiet spell can take up to a minute. After that it's awake.</p></details>
+        <details class="quiz-q"><summary><span class="n">5.</span><span>How do I sign in without a password?</span><svg class="tick" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="6" width="20" height="20"/><path pathLength="1" d="M7 15l6 8L28 3"/></svg></summary><p>Enter your email and PocketPlan sends you a 6-digit code. Type it in and you're in. You can also add a PIN or fingerprint lock.</p></details>
+      <div class="perfect" aria-hidden="true">PERFECT!</div>
     </div>
   </div>
 </section>
@@ -448,6 +498,17 @@ details p{padding:0 40px 22px 2px;line-height:1.55;color:var(--ink-soft)}
     var lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 1, anchors: true });
     (function raf(time) { lenis.raf(time); requestAnimationFrame(raf); })(performance.now());
   }
+
+  // Pop quiz: every question opened counts toward the score
+  var quiz = [].slice.call(document.querySelectorAll('.quiz-q')), scoreEl = document.getElementById('score');
+  quiz.forEach(function (q) {
+    q.addEventListener('toggle', function () {
+      if (q.open) q.classList.add('read');
+      var read = document.querySelectorAll('.quiz-q.read').length;
+      scoreEl.textContent = read;
+      document.getElementById('test').classList.toggle('done', read === quiz.length);
+    });
+  });
 
   // Folder tabs
   var tabs = [].slice.call(document.querySelectorAll('[role=tab]'));
